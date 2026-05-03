@@ -1,0 +1,168 @@
+{
+  "name": "Kimut Clinic — Status Update",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kimut-status-update",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook — Status Update",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "kimut-status-update"
+    },
+    {
+      "parameters": {
+        "jsCode": "const valid = ['Confirmed', 'Showed Up', 'No Show', 'Lost'];\nconst status = $input.item.json.body.new_status;\nif (!valid.includes(status)) {\n  throw new Error('invalid_status');\n}\nreturn $input.item;"
+      },
+      "name": "Validate Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "documentId": {
+          "__rl": true,
+          "value": "18E3t-tBNURk9XuyhY5aHcDHDC3GWVyAQHbEpuor6MAQ",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18E3t-tBNURk9XuyhY5aHcDHDC3GWVyAQHbEpuor6MAQ/edit#gid=0"
+        },
+        "lookupColumn": "Supabase ID",
+        "lookupValue": "={{ $json.body.supabase_id }}"
+      },
+      "name": "Google Sheets — Find Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SVup5TpHbFuZ6Rne",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "18E3t-tBNURk9XuyhY5aHcDHDC3GWVyAQHbEpuor6MAQ",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18E3t-tBNURk9XuyhY5aHcDHDC3GWVyAQHbEpuor6MAQ/edit#gid=0"
+        },
+        "rowNumber": "={{ $json.row_number }}",
+        "dataMode": "defineBelow",
+        "valuesUi": {
+          "values": [
+            {
+              "column": "Status",
+              "value": "={{ $('Validate Status').item.json.body.new_status }}"
+            }
+          ]
+        }
+      },
+      "name": "Google Sheets — Update Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        600,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SVup5TpHbFuZ6Rne",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"previous_status\": \"{{ $('Google Sheets — Find Row').item.json.Status }}\",\n  \"new_status\": \"{{ $('Validate Status').item.json.body.new_status }}\",\n  \"row_index\": {{ $('Google Sheets — Find Row').item.json.row_number }}\n}",
+        "options": {}
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        800,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook — Status Update": {
+      "main": [
+        [
+          {
+            "node": "Validate Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Status": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets — Find Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets — Find Row": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets — Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets — Update Status": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "bsVUfnHY1QjDYn20"
+  }
+}
