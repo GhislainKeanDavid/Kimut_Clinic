@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { parseNotes } from '$lib/parse-notes';
 	import { Activity, Users, Calendar, LogOut, CheckCircle2, ChevronDown, BarChart2 } from 'lucide-svelte';
+	import { PUBLIC_UMAMI_SHARE_URL } from '$env/static/public';
 
 	let { data } = $props();
 	let leads = $state(data.leads || []);
@@ -175,13 +176,13 @@
 		{:else}
 			<div class="rounded-2xl border border-Mist/60 bg-white p-8 shadow-sm">
 				<h3 class="mb-6 font-serif text-2xl italic text-Dark">Funnel Performance</h3>
-				<p class="mb-8 text-Dark/60">
-					Detailed funnel events and drop-off analytics will be rendered here.
-					Currently, {data.funnelEvents?.length || 0} event logs recorded.
-				</p>
-				<div class="h-64 rounded-xl bg-Mist/20 flex items-center justify-center border border-dashed border-Mist/60">
-					<p class="font-mono text-sm uppercase tracking-widest text-Dark/40">[LayerChart Visualization Placeholder]</p>
-				</div>
+				<iframe
+					src={PUBLIC_UMAMI_SHARE_URL}
+					title="Umami Analytics"
+					class="w-full rounded-xl border border-Mist/60"
+					style="height: 600px;"
+					sandbox="allow-scripts allow-same-origin"
+				></iframe>
 			</div>
 		{/if}
 	</main>

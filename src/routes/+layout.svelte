@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { captureUTMs } from '$lib/analytics.js';
+	import { PUBLIC_UMAMI_SCRIPT_URL, PUBLIC_UMAMI_WEBSITE_ID } from '$env/static/public';
 
 	let { children } = $props();
 
@@ -12,5 +13,11 @@
 		}
 	});
 </script>
+
+{#if !page.url.pathname.startsWith('/admin') && PUBLIC_UMAMI_SCRIPT_URL}
+<svelte:head>
+	<script defer src={PUBLIC_UMAMI_SCRIPT_URL} data-website-id={PUBLIC_UMAMI_WEBSITE_ID}></script>
+</svelte:head>
+{/if}
 
 {@render children()}
