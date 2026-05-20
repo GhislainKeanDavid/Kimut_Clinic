@@ -14,10 +14,10 @@
 	});
 </script>
 
-{#if !page.url.pathname.startsWith('/admin') && PUBLIC_UMAMI_SCRIPT_URL}
 <svelte:head>
-	<script defer src={PUBLIC_UMAMI_SCRIPT_URL} data-website-id={PUBLIC_UMAMI_WEBSITE_ID}></script>
+	{#if !page.url.pathname.startsWith('/admin') && PUBLIC_UMAMI_SCRIPT_URL}
+		<script defer src={PUBLIC_UMAMI_SCRIPT_URL} data-website-id={PUBLIC_UMAMI_WEBSITE_ID}></script>
+	{/if}
 </svelte:head>
-{/if}
 
 {@render children()}
