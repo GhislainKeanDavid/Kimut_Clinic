@@ -1,0 +1,133 @@
+{
+  "name": "Kimut Clinic — Umami Daily Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron — 08:00 Manila",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compute yesterday's date range in Asia/Manila time (UTC+8)\nconst formatter = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'Asia/Manila',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit'\n});\n\nconst now = new Date();\nconst yesterdayDate = new Date(now);\nyesterdayDate.setDate(now.getDate() - 1);\n\nconst yesterdayStr = formatter.format(yesterdayDate); // e.g. 2024-05-20\nconst todayStr = formatter.format(now);               // e.g. 2024-05-21\n\n// Epoch ms boundaries for Umami API (Manila midnight = UTC-8h offset, Manila is +8)\nconst startAt = new Date(`${yesterdayStr}T00:00:00+08:00`).getTime();\nconst endAt   = new Date(`${yesterdayStr}T23:59:59+08:00`).getTime();\n\nreturn [{ json: { startAt, endAt, date: yesterdayStr, today: todayStr } }];"
+      },
+      "name": "Get Date Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://YOUR_UMAMI_DOMAIN/api/websites/YOUR_WEBSITE_ID/stats?startAt={{ $('Get Date Range').item.json.startAt }}&endAt={{ $('Get Date Range').item.json.endAt }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-umami-api-key",
+              "value": "YOUR_UMAMI_API_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Umami — Website Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://qhhxiplzmxtxlkmmaqxs.supabase.co/rest/v1/patient_leads?select=id,created_at,status&created_at=gte.{{ $('Get Date Range').item.json.date }}&created_at=lt.{{ $('Get Date Range').item.json.today }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_ANON_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_ANON_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Supabase — New Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const umami = $('Umami — Website Stats').item.json;\nconst supabaseRaw = $('Supabase — New Leads').item.json;\nconst leads = Array.isArray(supabaseRaw) ? supabaseRaw : [];\nconst dateStr = $('Get Date Range').item.json.date;\n\n// Umami stats\nconst visitors  = umami.visitors?.value  ?? 0;\nconst pageviews = umami.pageviews?.value ?? 0;\nconst visits    = umami.visits?.value    ?? 0;\nconst bounces   = umami.bounces?.value   ?? 0;\n\n// Leads breakdown\nconst newLeads  = leads.length;\nconst confirmed = leads.filter(l => l.status === 'Confirmed').length;\nconst showed    = leads.filter(l => l.status === 'Showed Up').length;\nconst noShow    = leads.filter(l => l.status === 'No Show').length;\nconst lost      = leads.filter(l => l.status === 'Lost').length;\nconst pending   = leads.filter(l => l.status === 'Booked').length;\n\nconst convRate = visitors > 0 ? ((newLeads / visitors) * 100).toFixed(1) : '0.0';\n\nconst subject = `Kimut Clinic — Daily Digest ${dateStr}`;\nconst html = `\n<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto\">\n  <h2 style=\"color:#1a1a2e\">Kimut Clinic Daily Report</h2>\n  <p style=\"color:#666\">${dateStr}</p>\n\n  <h3 style=\"color:#4a4a8a\">Website Traffic</h3>\n  <table style=\"width:100%;border-collapse:collapse\">\n    <tr><td style=\"padding:6px 0\">Unique Visitors</td><td style=\"text-align:right\"><strong>${visitors}</strong></td></tr>\n    <tr><td style=\"padding:6px 0\">Page Views</td><td style=\"text-align:right\"><strong>${pageviews}</strong></td></tr>\n    <tr><td style=\"padding:6px 0\">Sessions</td><td style=\"text-align:right\"><strong>${visits}</strong></td></tr>\n    <tr><td style=\"padding:6px 0\">Bounces</td><td style=\"text-align:right\"><strong>${bounces}</strong></td></tr>\n  </table>\n\n  <h3 style=\"color:#4a4a8a\">Leads (submitted yesterday)</h3>\n  <table style=\"width:100%;border-collapse:collapse\">\n    <tr><td style=\"padding:6px 0\">New Leads</td><td style=\"text-align:right\"><strong>${newLeads}</strong></td></tr>\n    <tr><td style=\"padding:6px 0\">Confirmed</td><td style=\"text-align:right\">${confirmed}</td></tr>\n    <tr><td style=\"padding:6px 0\">Showed Up</td><td style=\"text-align:right\">${showed}</td></tr>\n    <tr><td style=\"padding:6px 0\">No Show</td><td style=\"text-align:right\">${noShow}</td></tr>\n    <tr><td style=\"padding:6px 0\">Lost</td><td style=\"text-align:right\">${lost}</td></tr>\n    <tr><td style=\"padding:6px 0\">Pending (Booked)</td><td style=\"text-align:right\">${pending}</td></tr>\n  </table>\n\n  <h3 style=\"color:#4a4a8a\">Conversion</h3>\n  <table style=\"width:100%;border-collapse:collapse\">\n    <tr><td style=\"padding:6px 0\">Traffic → Booking Rate</td><td style=\"text-align:right\"><strong>${convRate}%</strong></td></tr>\n  </table>\n</div>\n`.trim();\n\nreturn [{ json: { subject, html } }];"
+      },
+      "name": "Format Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "name": "Gmail — Send Digest",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1100, 0],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron — 08:00 Manila": {
+      "main": [
+        [{ "node": "Get Date Range", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Date Range": {
+      "main": [
+        [{ "node": "Umami — Website Stats", "type": "main", "index": 0 }]
+      ]
+    },
+    "Umami — Website Stats": {
+      "main": [
+        [{ "node": "Supabase — New Leads", "type": "main", "index": 0 }]
+      ]
+    },
+    "Supabase — New Leads": {
+      "main": [
+        [{ "node": "Format Digest", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Digest": {
+      "main": [
+        [{ "node": "Gmail — Send Digest", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "Asia/Manila",
+    "saveManualExecutions": true
+  }
+}

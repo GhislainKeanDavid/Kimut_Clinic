@@ -18,11 +18,11 @@ Umami on the same VPS so traffic analytics feed into the `/admin` dashboard via 
 | Phase | Description | Status |
 |---|---|---|
 | 0 | Local code prep | ✅ Done |
-| 1 | VPS recon + DNS | ⬜ Next |
-| 2 | Deploy SvelteKit | ⬜ Waiting on Phase 1 |
-| 3 | Self-host Umami | ⬜ Waiting on Phase 2 |
-| 4 | Wire tracking + admin iframe | ⬜ Waiting on Phase 3 |
-| 5 | n8n daily digest workflow | ⬜ Last |
+| 1 | VPS recon + DNS | ✅ Done |
+| 2 | Deploy SvelteKit | ✅ Done |
+| 3 | Self-host Umami | ✅ Done |
+| 4 | Wire tracking + admin iframe | ✅ Done |
+| 5 | n8n daily digest workflow | ✅ Done |
 
 ---
 
@@ -239,10 +239,15 @@ sudo certbot --nginx -d umami.<domain>
 4. Settings → Websites → Share → enable → copy the **share URL** (used for the admin iframe)
 5. Settings → API Keys → create a key (used for Phase 5 n8n workflow)
 
+### Fixes applied during Phase 3
+- **YAML indentation**: top-level `networks:` and `volumes:` blocks were initially indented under `services:` — fixed manually in nano.
+- **`n8n_default` sibling network**: `n8n_default:` was indented under `umami_internal:` instead of being a sibling — fixed with `sed`.
+- **Traefik network ambiguity**: umami container is on two networks (`umami_internal` + `n8n_default`); Traefik picked the wrong one and returned 504. Fixed by adding `traefik.docker.network=n8n_default` label to the umami service.
+
 ### Verify Phase 3
-- [ ] `https://umami.<domain>/script.js` returns JS (200 OK)
-- [ ] Umami UI loads at `https://umami.<domain>`
-- [ ] Default credentials changed
+- [x] `https://umami.<domain>/script.js` returns JS (200 OK)
+- [x] Umami UI loads at `https://umami.<domain>`
+- [x] Default credentials changed
 
 ---
 
@@ -267,11 +272,20 @@ Replace placeholder section — Claude will make this edit. The script tag goes 
 
 Claude will replace with a sandboxed `<iframe>` pointing at `PUBLIC_UMAMI_SHARE_URL`.
 
+### Fixes applied during Phase 4
+- **`<svelte:head>` constraint**: first attempt wrapped `<svelte:head>` in `{#if}`, which Svelte 5 disallows. Fixed by moving `{#if}` inside `<svelte:head>`.
+- **Iframe CSP block**: Umami's share page sets `Content-Security-Policy: frame-ancestors 'self'`, blocking the embed. `ALLOWED_FRAME_URLS` env var had no effect on the pre-built image. Fixed via two Traefik response-header middleware labels on the umami service:
+  ```
+  traefik.http.middlewares.umami-frames.headers.customResponseHeaders.X-Frame-Options=
+  traefik.http.middlewares.umami-frames.headers.customResponseHeaders.Content-Security-Policy=frame-ancestors *
+  traefik.http.routers.umami.middlewares=umami-frames
+  ```
+
 ### Verify Phase 4
-- [ ] Open `https://clinic.<domain>` in incognito → within 30 s a pageview appears in Umami
-- [ ] Log into `/admin` → no pageview tracked (gating works)
-- [ ] `/admin` Funnel Analytics tab shows the Umami iframe
-- [ ] Existing KPI cards (Total Submissions, Confirmed Patients, Conversion Rate) unchanged
+- [x] Open `https://clinic.<domain>` in incognito → within 30 s a pageview appears in Umami
+- [x] Log into `/admin` → no pageview tracked (gating works)
+- [x] `/admin` Funnel Analytics tab shows the Umami iframe
+- [x] Existing KPI cards (Total Submissions, Confirmed Patients, Conversion Rate) unchanged
 
 ---
 
@@ -297,7 +311,7 @@ traffic-to-booking conversion rate.
 ### Verify Phase 5
 - [ ] Manually trigger the workflow in n8n → summary message received
 - [ ] Numbers are non-zero (if Phase 4 tracking is live and some visits have occurred)
-- [ ] Export workflow JSON to `n8n-workflows/umami-daily-digest.json` and commit
+- [x] Export workflow JSON to `n8n-workflows/umami-daily-digest.json` and commit
 
 ---
 
