@@ -31,6 +31,7 @@ create table public.patient_leads (
 -- Additive columns for the new admin dashboard. Safe to run on the live project.
 alter table public.patient_leads add column if not exists assigned_pt text;  -- 'reyes' | 'santos' | 'dizon'
 alter table public.patient_leads add column if not exists internal_notes text;
+alter table public.patient_leads add column if not exists source text;        -- 'web' | 'retell' | 'voice' | 'phone'
 
 -- NEW table — safe to create. Feeds the admin dashboard's funnel/conversion charts.
 create table public.funnel_events (

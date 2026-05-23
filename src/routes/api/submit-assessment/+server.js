@@ -35,7 +35,8 @@ export async function POST({ request }) {
 			service: data.service,
 			datetime: isoDateTime,
 			additional_notes: encodedNotes,
-			session_id: data.session_id // Additive field for funnel linking
+			session_id: data.session_id, // Additive field for funnel linking
+			source: 'web'
 		};
 
 		// 4. POST to n8n

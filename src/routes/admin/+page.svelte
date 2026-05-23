@@ -41,10 +41,9 @@
 	<ProfileMenu bind:open={profileMenuOpen} />
 
 	<!-- Main content area -->
-	<main class="flex-1 overflow-y-auto">
-		<div class="mx-auto w-full max-w-6xl px-8 py-8">
-
-			{#if activeView === 'patients'}
+	<main class="flex-1 overflow-y-auto flex flex-col">
+		{#if activeView === 'patients'}
+			<div class="mx-auto w-full max-w-6xl px-8 py-8">
 				<!-- Live status indicator -->
 				<div class="mb-6 flex items-center justify-between">
 					<div>
@@ -73,8 +72,10 @@
 					bind:filterStatus
 					onStatusChange={handleStatusChange}
 				/>
+			</div>
 
-			{:else if activeView === 'analytics'}
+		{:else if activeView === 'analytics'}
+			<div class="flex flex-1 flex-col px-8 py-8">
 				<div class="mb-6">
 					<h1 class="font-serif text-2xl italic text-Dark mb-1">Funnel Analytics</h1>
 					<p class="font-mono text-[11px] text-Dark/40 uppercase tracking-widest">
@@ -82,18 +83,14 @@
 					</p>
 				</div>
 
-				<div class="rounded-2xl border border-Mist/60 bg-white p-8 shadow-sm">
-					<h3 class="mb-6 font-serif text-xl italic text-Dark">Funnel Performance</h3>
-					<iframe
-						src={PUBLIC_UMAMI_SHARE_URL}
-						title="Umami Analytics"
-						class="w-full rounded-xl border border-Mist/60"
-						style="height: 600px;"
-						sandbox="allow-scripts allow-same-origin"
-					></iframe>
-				</div>
-			{/if}
-
-		</div>
+				<iframe
+					src={PUBLIC_UMAMI_SHARE_URL}
+					title="Umami Analytics"
+					class="w-full flex-1 rounded-2xl border border-Mist/60"
+					style="min-height: 500px;"
+					sandbox="allow-scripts allow-same-origin"
+				></iframe>
+			</div>
+		{/if}
 	</main>
 </div>

@@ -153,11 +153,11 @@
 	class="overflow-hidden rounded-b-2xl rounded-t-none border border-t-0 border-Mist/60 bg-white shadow-sm"
 >
 	<div class="overflow-x-auto">
-		<table class="w-full text-left text-sm">
+		<table class="w-full table-fixed text-left text-sm">
 			<thead class="bg-Mist/20">
 				<tr>
 					<!-- Date — sortable -->
-					<th class="px-5 py-3">
+					<th class="w-[130px] px-5 py-3">
 						<button
 							onclick={() => toggleSort('date')}
 							class="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-Dark/40 hover:text-Dark/70 transition-colors group"
@@ -174,17 +174,17 @@
 							{/if}
 						</button>
 					</th>
-					<th class="px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
+					<th class="w-[220px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Patient</th
 					>
-					<th class="px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
+					<th class="w-[100px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Lead Age</th
 					>
 					<th class="px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Service</th
 					>
 					<!-- Status — sortable -->
-					<th class="px-5 py-3">
+					<th class="w-[160px] px-5 py-3">
 						<button
 							onclick={() => toggleSort('status')}
 							class="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-Dark/40 hover:text-Dark/70 transition-colors group"
@@ -201,7 +201,7 @@
 							{/if}
 						</button>
 					</th>
-					<th class="px-3 py-3 w-10"></th>
+					<th class="w-10 px-3 py-3"></th>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-Mist/40">
