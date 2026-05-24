@@ -4,19 +4,77 @@ import { encodeNotes } from '$lib/parse-notes';
 import { env } from '$env/dynamic/public';
 import { env as privateEnv } from '$env/dynamic/private';
 import { createClient } from '@supabase/supabase-js';
+import { getGoogleAccessToken, getGoogleBusy } from '$lib/gcal.js';
+
+const PT_SLUGS = ['reyes', 'santos', 'dizon'];
+const TIMEZONE = 'Asia/Manila';
+
+function getCalendarId(pt) {
+	if (pt === 'reyes') return privateEnv.GOOGLE_CALENDAR_ID_REYES;
+	if (pt === 'santos') return privateEnv.GOOGLE_CALENDAR_ID_SANTOS;
+	if (pt === 'dizon') return privateEnv.GOOGLE_CALENDAR_ID_DIZON;
+	return null;
+}
+
+async function resolveAssignedPt(preferred_pt, isoDatetime, supabaseUrl, supabaseKey) {
+	if (preferred_pt && preferred_pt !== 'any') return preferred_pt;
+	if (!isoDatetime) return PT_SLUGS[0];
+
+	const slotStart = new Date(isoDatetime);
+	const slotEnd = new Date(slotStart.getTime() + 3_600_000);
+	const dateStr = slotStart.toLocaleDateString('en-CA', { timeZone: TIMEZONE });
+	const dayMin = `${dateStr}T00:00:00+08:00`;
+	const dayMax = `${dateStr}T23:59:59+08:00`;
+
+	// Check GCal free/busy per PT for the specific slot
+	const accessToken = await getGoogleAccessToken();
+	const busyChecks = await Promise.all(
+		PT_SLUGS.map(async pt => {
+			const busy = await getGoogleBusy(
+				accessToken,
+				getCalendarId(pt),
+				slotStart.toISOString(),
+				slotEnd.toISOString()
+			);
+			return { pt, isBusy: busy.length > 0 };
+		})
+	);
+
+	const available = busyChecks.filter(b => !b.isBusy).map(b => b.pt);
+	const candidates = available.length > 0 ? available : PT_SLUGS;
+
+	// Pick the candidate with fewest active leads that day
+	try {
+		const supabase = createClient(supabaseUrl, supabaseKey);
+		const { data } = await supabase
+			.from('patient_leads')
+			.select('assigned_pt')
+			.gte('datetime', dayMin)
+			.lte('datetime', dayMax)
+			.in('status', ['Booked', 'Confirmed'])
+			.in('assigned_pt', candidates);
+
+		const counts = Object.fromEntries(candidates.map(pt => [pt, 0]));
+		for (const row of data || []) {
+			const slug = row.assigned_pt?.toLowerCase();
+			if (slug && counts[slug] !== undefined) counts[slug]++;
+		}
+
+		return candidates.sort((a, b) => counts[a] - counts[b])[0];
+	} catch {
+		return candidates[0];
+	}
+}
 
 export async function POST({ request }) {
 	try {
 		const data = await request.json();
-		
-		// 1. Format datetime to ISO 8601 with Asia/Manila +08:00 offset
-		// data.datetime looks like "2026-03-24T12:00:00"
+
 		let isoDateTime = '';
 		if (data.datetime) {
 			isoDateTime = DateTime.fromISO(data.datetime, { zone: 'Asia/Manila' }).toISO();
 		}
 
-		// 2. Encode notes
 		const encodedNotes = encodeNotes(
 			data.concernCategory,
 			data.durationDays,
@@ -24,22 +82,31 @@ export async function POST({ request }) {
 			data.additional_notes
 		);
 
-		// 3. Prepare payload matching n8n contract exactly
+		const supabaseUrl = env.PUBLIC_SUPABASE_URL;
+		const supabaseKey = env.PUBLIC_SUPABASE_ANON_KEY;
+
+		const assigned_pt = await resolveAssignedPt(
+			data.preferred_pt,
+			isoDateTime,
+			supabaseUrl,
+			supabaseKey
+		);
+
 		const payload = {
 			full_name: data.full_name,
-			age: data.age.toString(), // Must be string
-			sex: data.sex, // "Male" or "Female"
+			age: data.age.toString(),
+			sex: data.sex,
 			email: data.email,
 			phone_number: data.phone_number,
 			occupation: data.occupation,
 			service: data.service,
 			datetime: isoDateTime,
 			additional_notes: encodedNotes,
-			session_id: data.session_id, // Additive field for funnel linking
-			source: 'web'
+			session_id: data.session_id,
+			source: 'web',
+			assigned_pt
 		};
 
-		// 4. POST to n8n
 		const n8nIntakeUrl = `${privateEnv.N8N_BASE_URL}/webhook/kimutclinic-intake`;
 		const response = await fetch(n8nIntakeUrl, {
 			method: 'POST',
@@ -48,39 +115,29 @@ export async function POST({ request }) {
 		});
 
 		if (!response.ok) {
-			// n8n might return 5xx or 4xx on failure
 			return json({ success: false, reason: 'network_error' }, { status: 502 });
 		}
 
 		const result = await response.json();
-		
-		// If n8n explicitly says duplicate
+
 		if (result && result.success === false && result.reason === 'duplicate') {
 			return json({ success: false, reason: 'duplicate' });
 		}
 
-		// 5. If we have a success result and a patient_lead_id in response, update funnel_events
-		// Note: The prompt instructed that n8n could update the funnel_events via Supabase REST, 
-		// but doing it here as a fallback is also a valid pattern if n8n returns the id.
 		if (result && result.id && data.session_id) {
 			try {
-				const supabaseUrl = env.PUBLIC_SUPABASE_URL;
-				const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY;
-				if (supabaseUrl && supabaseAnonKey) {
-					const supabase = createClient(supabaseUrl, supabaseAnonKey);
-					await supabase
-						.from('funnel_events')
-						.update({ patient_lead_id: result.id })
-						.eq('session_id', data.session_id)
-						.eq('event', 'submitted');
-				}
+				const supabase = createClient(supabaseUrl, supabaseKey);
+				await supabase
+					.from('funnel_events')
+					.update({ patient_lead_id: result.id })
+					.eq('session_id', data.session_id)
+					.eq('event', 'submitted');
 			} catch (e) {
 				console.error('Failed to link funnel_event to lead id', e);
 			}
 		}
 
 		return json({ success: true, ...result });
-
 	} catch (e) {
 		console.error('Assessment submission error:', e);
 		return json({ success: false, reason: 'server_error' }, { status: 500 });

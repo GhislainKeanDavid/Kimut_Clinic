@@ -1,10 +1,15 @@
 <script>
-	import { PUBLIC_UMAMI_SHARE_URL } from '$env/static/public';
+	import { onMount, onDestroy } from 'svelte';
+	import { PUBLIC_UMAMI_SHARE_URL, PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+	import { createBrowserClient } from '@supabase/ssr';
 
 	import SideNav from '$lib/components/admin/SideNav.svelte';
 	import ProfileMenu from '$lib/components/admin/ProfileMenu.svelte';
 	import MetricCards from '$lib/components/admin/MetricCards.svelte';
 	import PatientTable from '$lib/components/admin/PatientTable.svelte';
+	import PTSchedule from '$lib/components/admin/PTSchedule.svelte';
+	import ToastNotifications from '$lib/components/admin/ToastNotifications.svelte';
+	import { toastStore } from '$lib/stores/toasts.svelte.js';
 
 	let { data } = $props();
 	let leads = $state(data.leads || []);
@@ -12,6 +17,46 @@
 	let activeView = $state('patients');
 	let filterStatus = $state('All');
 	let profileMenuOpen = $state(false);
+
+	let realtimeChannel;
+
+	onMount(() => {
+		const supabase = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
+
+		realtimeChannel = supabase
+			.channel('new-bookings')
+			.on(
+				'postgres_changes',
+				{ event: 'INSERT', schema: 'public', table: 'patient_leads' },
+				(payload) => {
+					const lead = payload.new;
+					leads.unshift(lead);
+
+					const src = lead.source?.toLowerCase() ?? 'web';
+					const isVoice = src === 'retell' || src === 'voice' || src === 'phone';
+					const appt = lead.datetime
+						? new Date(lead.datetime).toLocaleString('en-PH', {
+								month: 'short',
+								day: 'numeric',
+								hour: 'numeric',
+								minute: '2-digit',
+								timeZone: 'Asia/Manila'
+							})
+						: null;
+
+					toastStore.add({
+						title: lead.full_name || 'New Patient',
+						body: [lead.service, appt].filter(Boolean).join(' • '),
+						source: lead.source ?? 'web'
+					});
+				}
+			)
+			.subscribe();
+	});
+
+	onDestroy(() => {
+		realtimeChannel?.unsubscribe();
+	});
 
 	async function handleStatusChange(lead_id, new_status, email) {
 		const leadIndex = leads.findIndex((l) => l.id === lead_id);
@@ -33,6 +78,8 @@
 	}
 </script>
 
+<ToastNotifications />
+
 <div class="flex h-screen overflow-hidden bg-Background">
 	<!-- Side Navigation -->
 	<SideNav bind:activeView onProfileClick={toggleProfile} />
@@ -52,7 +99,9 @@
 							Patient Management
 						</p>
 					</div>
-					<span class="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-Dark/35">
+					<span
+						class="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-Dark/35"
+					>
 						<span class="relative flex h-1.5 w-1.5">
 							<span
 								class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"
@@ -67,12 +116,11 @@
 				<MetricCards {leads} bind:filterStatus />
 
 				<!-- Patient Table -->
-				<PatientTable
-					{leads}
-					bind:filterStatus
-					onStatusChange={handleStatusChange}
-				/>
+				<PatientTable {leads} bind:filterStatus onStatusChange={handleStatusChange} />
 			</div>
+
+		{:else if activeView === 'schedules'}
+			<PTSchedule {leads} />
 
 		{:else if activeView === 'analytics'}
 			<div class="flex flex-1 flex-col px-8 py-8">

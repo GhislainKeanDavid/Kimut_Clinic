@@ -1,5 +1,5 @@
 <script>
-	import { Activity, ArrowLeft, Users, BarChart2, User } from 'lucide-svelte';
+	import { Activity, ArrowLeft, Users, BarChart2, User, CalendarDays } from 'lucide-svelte';
 
 	let { activeView = $bindable('patients'), onProfileClick } = $props();
 
@@ -8,6 +8,7 @@
 			label: 'Patient Management',
 			items: [
 				{ id: 'patients', label: 'Patient List', Icon: Users },
+				{ id: 'schedules', label: 'PT Schedules', Icon: CalendarDays },
 				{ id: 'analytics', label: 'Funnel Analytics', Icon: BarChart2 }
 			]
 		}
@@ -69,7 +70,9 @@
 				<User class="h-3.5 w-3.5 text-white/60" />
 			</div>
 			<div class="min-w-0 flex-1">
-				<p class="font-mono text-[11px] text-white/55 group-hover:text-white/80 transition-colors truncate leading-none">
+				<p
+					class="font-mono text-[11px] text-white/55 group-hover:text-white/80 transition-colors truncate leading-none"
+				>
 					Admin Profile
 				</p>
 			</div>

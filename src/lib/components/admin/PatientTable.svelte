@@ -8,8 +8,7 @@
 		Phone,
 		MoreVertical,
 		FileText,
-		Pencil,
-		MessageSquare
+		Pencil
 	} from 'lucide-svelte';
 
 	let { leads, filterStatus = $bindable('All'), onStatusChange } = $props();
@@ -28,10 +27,18 @@
 		Lost: { dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600 border-gray-200' }
 	};
 
+	const ptCfg = {
+		reyes: { label: 'Reyes', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
+		santos: { label: 'Santos', badge: 'bg-green-50 text-green-700 border-green-200' },
+		dizon: { label: 'Dizon', badge: 'bg-amber-50 text-amber-700 border-amber-200' }
+	};
+	const ptFilters = ['All PTs', 'Reyes', 'Santos', 'Dizon', 'Unassigned'];
+
 	let searchQuery = $state('');
 	let sortField = $state('date');
 	let sortDir = $state('desc');
 	let openActionRow = $state(null);
+	let filterPT = $state('All PTs');
 
 	function toggleSort(field) {
 		if (sortField === field) {
@@ -46,12 +53,17 @@
 		const q = searchQuery.toLowerCase();
 		let result = leads.filter((l) => {
 			const matchesStatus = filterStatus === 'All' || l.status === filterStatus;
+			const matchesPT =
+				filterPT === 'All PTs' ||
+				(filterPT === 'Unassigned'
+					? !l.assigned_pt
+					: l.assigned_pt?.toLowerCase() === filterPT.toLowerCase());
 			const matchesSearch =
 				!q ||
 				l.full_name?.toLowerCase().includes(q) ||
 				l.email?.toLowerCase().includes(q) ||
 				l.service?.toLowerCase().includes(q);
-			return matchesStatus && matchesSearch;
+			return matchesStatus && matchesPT && matchesSearch;
 		});
 
 		result = [...result].sort((a, b) => {
@@ -110,8 +122,7 @@
 
 	const rowActions = [
 		{ Icon: FileText, label: 'View Notes' },
-		{ Icon: Pencil, label: 'Edit Details' },
-		{ Icon: MessageSquare, label: 'Trigger SMS' }
+		{ Icon: Pencil, label: 'Edit Details' }
 	];
 </script>
 
@@ -148,6 +159,22 @@
 	</span>
 </div>
 
+<!-- PT filter pills row -->
+<div class="flex flex-wrap items-center gap-1 py-2 border-b border-Mist/60">
+	<span class="font-mono text-[9px] uppercase tracking-[0.2em] text-Dark/30 mr-1">PT:</span>
+	{#each ptFilters as f}
+		<button
+			onclick={() => (filterPT = f)}
+			class="rounded-lg px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors
+				{filterPT === f
+					? 'bg-Dark/80 text-white'
+					: 'text-Dark/40 hover:bg-Mist/50 hover:text-Dark'}"
+		>
+			{f}
+		</button>
+	{/each}
+</div>
+
 <!-- Table -->
 <div
 	class="overflow-hidden rounded-b-2xl rounded-t-none border border-t-0 border-Mist/60 bg-white shadow-sm"
@@ -174,10 +201,13 @@
 							{/if}
 						</button>
 					</th>
-					<th class="w-[220px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
+					<th class="w-[200px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Patient</th
 					>
 					<th class="w-[100px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
+						>Assigned PT</th
+					>
+					<th class="w-[90px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Lead Age</th
 					>
 					<th class="px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
@@ -207,8 +237,10 @@
 			<tbody class="divide-y divide-Mist/40">
 				{#if processedLeads.length === 0}
 					<tr>
-						<td colspan="6" class="py-16 text-center font-mono text-xs text-Dark/30">
-							{searchQuery || filterStatus !== 'All' ? 'No matching records.' : 'No submissions yet.'}
+						<td colspan="7" class="py-16 text-center font-mono text-xs text-Dark/30">
+							{searchQuery || filterStatus !== 'All' || filterPT !== 'All PTs'
+								? 'No matching records.'
+								: 'No submissions yet.'}
 						</td>
 					</tr>
 				{/if}
@@ -216,6 +248,8 @@
 					{@const sc = statusCfg[lead.status] ?? statusCfg['Lost']}
 					{@const days = daysSince(lead.created_at)}
 					{@const isVoice = isVoiceSource(lead)}
+					{@const ptSlug = lead.assigned_pt?.toLowerCase()}
+					{@const pc = ptCfg[ptSlug]}
 					<tr class="relative transition-colors hover:bg-Mist/10 group">
 						<!-- Date -->
 						<td class="whitespace-nowrap px-5 py-4">
@@ -229,7 +263,7 @@
 							<div class="font-mono text-[10px] text-Dark/32 mt-0.5">{daysAgo(lead.created_at)}</div>
 						</td>
 
-						<!-- Patient (name + source icon + age + phone) -->
+						<!-- Patient -->
 						<td class="px-5 py-4">
 							<div class="flex items-start gap-2">
 								<div
@@ -254,7 +288,20 @@
 							</div>
 						</td>
 
-						<!-- Lead Age (was "Days to Contact") -->
+						<!-- Assigned PT -->
+						<td class="px-5 py-4">
+							{#if pc}
+								<span
+									class="inline-flex items-center rounded-lg border px-2 py-0.5 font-mono text-[10px] font-medium {pc.badge}"
+								>
+									{pc.label}
+								</span>
+							{:else}
+								<span class="font-mono text-[10px] text-Dark/25">—</span>
+							{/if}
+						</td>
+
+						<!-- Lead Age -->
 						<td class="px-5 py-4">
 							<span
 								class="inline-flex items-center rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold {daysColor(days)} {daysBg(days)}"
@@ -302,19 +349,16 @@
 								</button>
 
 								{#if openActionRow === lead.id}
-									<!-- Click-outside for action menu -->
 									<div class="fixed inset-0 z-40" role="presentation" onclick={closeActionMenu}></div>
 
 									<div
-										class="absolute right-0 top-8 z-50 w-40 rounded-xl border border-Mist/70 bg-white shadow-xl shadow-Dark/10 overflow-hidden"
+										class="absolute right-0 top-8 z-50 w-36 rounded-xl border border-Mist/70 bg-white shadow-xl shadow-Dark/10 overflow-hidden"
 									>
 										<div class="p-1">
 											{#each rowActions as action}
 												<button
 													class="w-full flex items-center gap-2.5 rounded-lg px-3 py-2 font-mono text-[11px] text-Dark/60 hover:bg-Mist/30 hover:text-Dark transition-colors text-left"
-													onclick={() => {
-														closeActionMenu();
-													}}
+													onclick={() => closeActionMenu()}
 												>
 													<action.Icon class="h-3 w-3 flex-shrink-0 text-Dark/40" />
 													{action.label}

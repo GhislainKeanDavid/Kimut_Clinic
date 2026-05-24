@@ -2,14 +2,23 @@ import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 import { createClient } from '@supabase/supabase-js';
+import { getGoogleAccessToken, getGoogleBusy, getGoogleBusyBatch } from '$lib/gcal.js';
 
 const TIMEZONE = 'Asia/Manila';
+const PT_SLUGS = ['reyes', 'santos', 'dizon'];
+
+function getCalendarId(pt) {
+	if (pt === 'reyes') return env.GOOGLE_CALENDAR_ID_REYES;
+	if (pt === 'santos') return env.GOOGLE_CALENDAR_ID_SANTOS;
+	if (pt === 'dizon') return env.GOOGLE_CALENDAR_ID_DIZON;
+	return env.GOOGLE_CALENDAR_ID;
+}
 
 function getSlotsForDate(dateStr) {
 	const d = new Date(dateStr + 'T00:00:00');
 	const day = d.getDay();
-	if (day === 0) return []; // Sunday - closed
-	const endHour = day === 6 ? 12 : 17; // Sat closes at noon
+	if (day === 0) return [];
+	const endHour = day === 6 ? 12 : 17;
 	const slots = [];
 	for (let h = 8; h < endHour; h++) {
 		slots.push(`${String(h).padStart(2, '0')}:00`);
@@ -17,83 +26,6 @@ function getSlotsForDate(dateStr) {
 	return slots;
 }
 
-function b64url(str) {
-	return btoa(str).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-}
-
-function b64urlBuf(buf) {
-	return btoa(String.fromCharCode(...new Uint8Array(buf)))
-		.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-}
-
-async function getGoogleAccessToken() {
-	const email = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-	const rawKey = env.GOOGLE_PRIVATE_KEY;
-	if (!email || !rawKey) return null;
-
-	try {
-		const privateKey = rawKey.replace(/\\n/g, '\n');
-		const pemBody = privateKey
-			.replace(/-----BEGIN PRIVATE KEY-----/, '')
-			.replace(/-----END PRIVATE KEY-----/, '')
-			.replace(/\s/g, '');
-		const der = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
-
-		const now = Math.floor(Date.now() / 1000);
-		const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-		const payload = b64url(JSON.stringify({
-			iss: email,
-			scope: 'https://www.googleapis.com/auth/calendar.readonly',
-			aud: 'https://oauth2.googleapis.com/token',
-			exp: now + 3600,
-			iat: now
-		}));
-
-		const toSign = `${header}.${payload}`;
-		const key = await crypto.subtle.importKey(
-			'pkcs8', der,
-			{ name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-			false, ['sign']
-		);
-		const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(toSign));
-		const jwt = `${toSign}.${b64urlBuf(sig)}`;
-
-		const res = await fetch('https://oauth2.googleapis.com/token', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-			body: new URLSearchParams({
-				grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-				assertion: jwt
-			})
-		});
-		if (!res.ok) return null;
-		return (await res.json()).access_token;
-	} catch (e) {
-		console.error('Google Calendar auth error:', e.message);
-		return null;
-	}
-}
-
-async function getGoogleBusy(accessToken, calendarId, timeMin, timeMax) {
-	if (!accessToken || !calendarId) return [];
-	try {
-		const res = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
-			method: 'POST',
-			headers: {
-				'Authorization': `Bearer ${accessToken}`,
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ timeMin, timeMax, items: [{ id: calendarId }] })
-		});
-		if (!res.ok) return [];
-		const data = await res.json();
-		return data.calendars?.[calendarId]?.busy || [];
-	} catch {
-		return [];
-	}
-}
-
-// Which slots overlap a busy period on a given date
 function busyToSlots(busy, dateStr, allSlots) {
 	const booked = new Set();
 	for (const { start, end } of busy) {
@@ -108,18 +40,20 @@ function busyToSlots(busy, dateStr, allSlots) {
 	return [...booked];
 }
 
-async function getSupabaseBookings(timeMin, timeMax) {
+async function getSupabaseBookings(timeMin, timeMax, assignedPt = null) {
 	const supabaseUrl = publicEnv.PUBLIC_SUPABASE_URL;
 	const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY || publicEnv.PUBLIC_SUPABASE_ANON_KEY;
 	if (!supabaseUrl || !supabaseKey) return [];
 	try {
 		const supabase = createClient(supabaseUrl, supabaseKey);
-		const { data } = await supabase
+		let query = supabase
 			.from('patient_leads')
-			.select('datetime')
+			.select('datetime, assigned_pt')
 			.gte('datetime', timeMin)
 			.lte('datetime', timeMax)
 			.in('status', ['Booked', 'Confirmed']);
+		if (assignedPt) query = query.eq('assigned_pt', assignedPt);
+		const { data } = await query;
 		return data || [];
 	} catch {
 		return [];
@@ -139,9 +73,9 @@ function rowToDate(datetimeStr) {
 export async function GET({ url }) {
 	const dateStr = url.searchParams.get('date');
 	const monthStr = url.searchParams.get('month');
-	const calendarId = env.GOOGLE_CALENDAR_ID;
+	const pt = url.searchParams.get('pt') || 'any';
 
-	// --- Single date: return booked slots ---
+	// ── Single date ──────────────────────────────────────────────────────────
 	if (dateStr) {
 		const allSlots = getSlotsForDate(dateStr);
 		if (allSlots.length === 0) return json({ booked_slots: [], fully_booked: true });
@@ -149,57 +83,124 @@ export async function GET({ url }) {
 		const timeMin = `${dateStr}T00:00:00+08:00`;
 		const timeMax = `${dateStr}T23:59:59+08:00`;
 
+		if (pt !== 'any') {
+			const calendarId = getCalendarId(pt);
+			const [accessToken, rows] = await Promise.all([
+				getGoogleAccessToken(),
+				getSupabaseBookings(timeMin, timeMax, pt)
+			]);
+			const busy = await getGoogleBusy(accessToken, calendarId, timeMin, timeMax);
+			const googleSlots = busyToSlots(busy, dateStr, allSlots);
+			const supabaseSlots = rows.map(r => rowToSlot(r.datetime));
+			const booked_slots = [...new Set([...googleSlots, ...supabaseSlots])].filter(s => allSlots.includes(s));
+			return json({ booked_slots, fully_booked: booked_slots.length >= allSlots.length });
+		}
+
+		// any PT: slot is unavailable only if ALL 3 PTs are busy at that time
+		const calIds = PT_SLUGS.map(getCalendarId).filter(Boolean);
 		const [accessToken, rows] = await Promise.all([
 			getGoogleAccessToken(),
 			getSupabaseBookings(timeMin, timeMax)
 		]);
+		const busyByCalendar = await getGoogleBusyBatch(accessToken, calIds, timeMin, timeMax);
 
-		const busy = await getGoogleBusy(accessToken, calendarId, timeMin, timeMax);
-		const googleSlots = busyToSlots(busy, dateStr, allSlots);
-		const supabaseSlots = rows.map(r => rowToSlot(r.datetime));
+		const perPtBooked = {};
+		for (const slug of PT_SLUGS) {
+			const busy = busyByCalendar[getCalendarId(slug)] || [];
+			perPtBooked[slug] = new Set(busyToSlots(busy, dateStr, allSlots));
+		}
+		for (const row of rows) {
+			const slug = row.assigned_pt?.toLowerCase();
+			if (slug && perPtBooked[slug]) perPtBooked[slug].add(rowToSlot(row.datetime));
+		}
 
-		const booked_slots = [...new Set([...googleSlots, ...supabaseSlots])].filter(s => allSlots.includes(s));
+		const booked_slots = allSlots.filter(slot =>
+			PT_SLUGS.every(slug => perPtBooked[slug]?.has(slot))
+		);
 		return json({ booked_slots, fully_booked: booked_slots.length >= allSlots.length });
 	}
 
-	// --- Month: return which days are fully booked ---
+	// ── Month view ────────────────────────────────────────────────────────────
 	if (monthStr) {
 		const [year, month] = monthStr.split('-').map(Number);
-		const daysInMonth = new Date(year, month, 0).getDate(); // month is 1-indexed here
+		const daysInMonth = new Date(year, month, 0).getDate();
 		const lastDay = `${monthStr}-${String(daysInMonth).padStart(2, '0')}`;
 		const timeMin = `${monthStr}-01T00:00:00+08:00`;
 		const timeMax = `${lastDay}T23:59:59+08:00`;
 
+		if (pt !== 'any') {
+			const calendarId = getCalendarId(pt);
+			const [accessToken, rows] = await Promise.all([
+				getGoogleAccessToken(),
+				getSupabaseBookings(timeMin, timeMax, pt)
+			]);
+			const busy = await getGoogleBusy(accessToken, calendarId, timeMin, timeMax);
+
+			const byDate = {};
+			for (const row of rows) {
+				const ds = rowToDate(row.datetime);
+				(byDate[ds] ??= []).push(rowToSlot(row.datetime));
+			}
+
+			const fully_booked_dates = [];
+			for (let d = 1; d <= daysInMonth; d++) {
+				const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
+				const slots = getSlotsForDate(ds);
+				if (slots.length === 0) continue;
+
+				const dayStart = new Date(`${ds}T00:00:00+08:00`).getTime();
+				const dayEnd = new Date(`${ds}T23:59:59+08:00`).getTime();
+				const dayBusy = busy.filter(({ start, end }) =>
+					new Date(start).getTime() < dayEnd && new Date(end).getTime() > dayStart
+				);
+
+				const allBooked = new Set([
+					...busyToSlots(dayBusy, ds, slots),
+					...(byDate[ds] || [])
+				]);
+				if (slots.every(s => allBooked.has(s))) fully_booked_dates.push(ds);
+			}
+
+			return json({ fully_booked_dates });
+		}
+
+		// any PT: a day is fully booked only if ALL 3 PTs are fully booked
+		const calIds = PT_SLUGS.map(getCalendarId).filter(Boolean);
 		const [accessToken, rows] = await Promise.all([
 			getGoogleAccessToken(),
 			getSupabaseBookings(timeMin, timeMax)
 		]);
+		const busyByCalendar = await getGoogleBusyBatch(accessToken, calIds, timeMin, timeMax);
 
-		const busy = await getGoogleBusy(accessToken, calendarId, timeMin, timeMax);
-
-		// Group supabase rows by date
-		const byDate = {};
+		const byDatePt = {};
 		for (const row of rows) {
 			const ds = rowToDate(row.datetime);
-			(byDate[ds] ??= []).push(rowToSlot(row.datetime));
+			const slug = row.assigned_pt?.toLowerCase();
+			if (!slug) continue;
+			((byDatePt[ds] ??= {})[slug] ??= []).push(rowToSlot(row.datetime));
 		}
 
 		const fully_booked_dates = [];
 		for (let d = 1; d <= daysInMonth; d++) {
 			const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
-			const allSlots = getSlotsForDate(ds);
-			if (allSlots.length === 0) continue;
+			const slots = getSlotsForDate(ds);
+			if (slots.length === 0) continue;
 
 			const dayStart = new Date(`${ds}T00:00:00+08:00`).getTime();
 			const dayEnd = new Date(`${ds}T23:59:59+08:00`).getTime();
-			const dayBusy = busy.filter(({ start, end }) => {
-				return new Date(start).getTime() < dayEnd && new Date(end).getTime() > dayStart;
+
+			const allPtsFull = PT_SLUGS.every(slug => {
+				const calBusy = (busyByCalendar[getCalendarId(slug)] || []).filter(({ start, end }) =>
+					new Date(start).getTime() < dayEnd && new Date(end).getTime() > dayStart
+				);
+				const allBooked = new Set([
+					...busyToSlots(calBusy, ds, slots),
+					...(byDatePt[ds]?.[slug] || [])
+				]);
+				return slots.every(s => allBooked.has(s));
 			});
 
-			const googleSlots = busyToSlots(dayBusy, ds, allSlots);
-			const supabaseSlots = byDate[ds] || [];
-			const allBooked = new Set([...googleSlots, ...supabaseSlots]);
-			if (allSlots.every(s => allBooked.has(s))) fully_booked_dates.push(ds);
+			if (allPtsFull) fully_booked_dates.push(ds);
 		}
 
 		return json({ fully_booked_dates });
