@@ -104,7 +104,8 @@ export async function POST({ request }) {
 			additional_notes: encodedNotes,
 			session_id: data.session_id,
 			source: 'web',
-			assigned_pt
+			assigned_pt,
+			calendar_id: getCalendarId(assigned_pt)
 		};
 
 		const n8nIntakeUrl = `${privateEnv.N8N_BASE_URL}/webhook/kimutclinic-intake`;
