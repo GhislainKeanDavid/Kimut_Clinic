@@ -11,7 +11,7 @@
 		Pencil
 	} from 'lucide-svelte';
 
-	let { leads, filterStatus = $bindable('All'), onStatusChange } = $props();
+	let { leads, filterStatus = $bindable('All'), onStatusChange, onAssignPt } = $props();
 
 	const statusOptions = ['Booked', 'Confirmed', 'Showed Up', 'No Show', 'Lost'];
 	const statusFilters = ['All', ...statusOptions];
@@ -332,6 +332,25 @@
 									class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 opacity-40"
 								/>
 							</div>
+
+							<!-- PT assignment — only shown for unassigned leads -->
+							{#if !lead.assigned_pt}
+								<div class="mt-1.5">
+									<select
+										class="appearance-none rounded-lg border border-amber-200 bg-amber-50 pl-2.5 pr-6 py-1 font-mono text-[10px] font-medium text-amber-700 outline-none cursor-pointer transition-all hover:brightness-95 focus:ring-1 focus:ring-amber-300 w-full"
+										value=""
+										onchange={(e) => {
+											if (e.target.value) onAssignPt(lead.id, e.target.value);
+											e.target.value = '';
+										}}
+									>
+										<option value="" disabled>Assign PT…</option>
+										<option value="reyes">Reyes</option>
+										<option value="santos">Santos</option>
+										<option value="dizon">Dizon</option>
+									</select>
+								</div>
+							{/if}
 						</td>
 
 						<!-- Row actions -->

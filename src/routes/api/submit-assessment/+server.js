@@ -4,66 +4,16 @@ import { encodeNotes } from '$lib/parse-notes';
 import { env } from '$env/dynamic/public';
 import { env as privateEnv } from '$env/dynamic/private';
 import { createClient } from '@supabase/supabase-js';
-import { getGoogleAccessToken, getGoogleBusy } from '$lib/gcal.js';
 
 const PT_SLUGS = ['reyes', 'santos', 'dizon'];
 const TIMEZONE = 'Asia/Manila';
 
 function getCalendarId(pt) {
-	if (pt === 'reyes') return privateEnv.GOOGLE_CALENDAR_ID_REYES;
-	if (pt === 'santos') return privateEnv.GOOGLE_CALENDAR_ID_SANTOS;
-	if (pt === 'dizon') return privateEnv.GOOGLE_CALENDAR_ID_DIZON;
-	return null;
-}
-
-async function resolveAssignedPt(preferred_pt, isoDatetime, supabaseUrl, supabaseKey) {
-	if (preferred_pt && preferred_pt !== 'any') return preferred_pt;
-	if (!isoDatetime) return PT_SLUGS[0];
-
-	const slotStart = new Date(isoDatetime);
-	const slotEnd = new Date(slotStart.getTime() + 3_600_000);
-	const dateStr = slotStart.toLocaleDateString('en-CA', { timeZone: TIMEZONE });
-	const dayMin = `${dateStr}T00:00:00+08:00`;
-	const dayMax = `${dateStr}T23:59:59+08:00`;
-
-	// Check GCal free/busy per PT for the specific slot
-	const accessToken = await getGoogleAccessToken();
-	const busyChecks = await Promise.all(
-		PT_SLUGS.map(async pt => {
-			const busy = await getGoogleBusy(
-				accessToken,
-				getCalendarId(pt),
-				slotStart.toISOString(),
-				slotEnd.toISOString()
-			);
-			return { pt, isBusy: busy.length > 0 };
-		})
-	);
-
-	const available = busyChecks.filter(b => !b.isBusy).map(b => b.pt);
-	const candidates = available.length > 0 ? available : PT_SLUGS;
-
-	// Pick the candidate with fewest active leads that day
-	try {
-		const supabase = createClient(supabaseUrl, supabaseKey);
-		const { data } = await supabase
-			.from('patient_leads')
-			.select('assigned_pt')
-			.gte('datetime', dayMin)
-			.lte('datetime', dayMax)
-			.in('status', ['Booked', 'Confirmed'])
-			.in('assigned_pt', candidates);
-
-		const counts = Object.fromEntries(candidates.map(pt => [pt, 0]));
-		for (const row of data || []) {
-			const slug = row.assigned_pt?.toLowerCase();
-			if (slug && counts[slug] !== undefined) counts[slug]++;
-		}
-
-		return candidates.sort((a, b) => counts[a] - counts[b])[0];
-	} catch {
-		return candidates[0];
-	}
+	if (pt === 'reyes') return privateEnv.GOOGLE_CALENDAR_ID_REYES || privateEnv.GOOGLE_CALENDAR_ID;
+	if (pt === 'santos') return privateEnv.GOOGLE_CALENDAR_ID_SANTOS || privateEnv.GOOGLE_CALENDAR_ID;
+	if (pt === 'dizon') return privateEnv.GOOGLE_CALENDAR_ID_DIZON || privateEnv.GOOGLE_CALENDAR_ID;
+	// 'any' or unknown → Kimut Clinic calendar (unassigned holding queue)
+	return privateEnv.GOOGLE_CALENDAR_ID;
 }
 
 export async function POST({ request }) {
@@ -85,12 +35,18 @@ export async function POST({ request }) {
 		const supabaseUrl = env.PUBLIC_SUPABASE_URL;
 		const supabaseKey = env.PUBLIC_SUPABASE_ANON_KEY;
 
-		const assigned_pt = await resolveAssignedPt(
-			data.preferred_pt,
-			isoDateTime,
-			supabaseUrl,
-			supabaseKey
-		);
+		// Only auto-assign a PT when the patient has no preference.
+		// Specific-PT bookings go directly to that therapist's calendar.
+		// 'any' bookings land in the Kimut Clinic holding calendar; admin assigns later.
+		const isSpecificPt = data.preferred_pt && data.preferred_pt !== 'any';
+		let assigned_pt = null;
+
+		if (isSpecificPt) {
+			assigned_pt = data.preferred_pt;
+		}
+		// For 'any', leave assigned_pt null — admin will assign from the dashboard
+
+		const calendarId = getCalendarId(assigned_pt);
 
 		const payload = {
 			full_name: data.full_name,
@@ -105,7 +61,7 @@ export async function POST({ request }) {
 			session_id: data.session_id,
 			source: 'web',
 			assigned_pt,
-			calendar_id: getCalendarId(assigned_pt)
+			calendar_id: calendarId
 		};
 
 		const n8nIntakeUrl = `${privateEnv.N8N_BASE_URL}/webhook/kimutclinic-intake`;
@@ -125,16 +81,27 @@ export async function POST({ request }) {
 			return json({ success: false, reason: 'duplicate' });
 		}
 
-		if (result && result.id && data.session_id) {
-			try {
-				const supabase = createClient(supabaseUrl, supabaseKey);
-				await supabase
-					.from('funnel_events')
-					.update({ patient_lead_id: result.id })
-					.eq('session_id', data.session_id)
-					.eq('event', 'submitted');
-			} catch (e) {
-				console.error('Failed to link funnel_event to lead id', e);
+		const supabase = createClient(supabaseUrl, supabaseKey);
+
+		// Save gcal_event_id returned by n8n so we can move the event when a therapist is assigned
+		if (result && result.id) {
+			const updates = {};
+			if (result.gcal_event_id) updates.gcal_event_id = result.gcal_event_id;
+			if (Object.keys(updates).length > 0) {
+				await supabase.from('patient_leads').update(updates).eq('id', result.id);
+			}
+
+			// Link funnel events to this lead
+			if (data.session_id) {
+				try {
+					await supabase
+						.from('funnel_events')
+						.update({ patient_lead_id: result.id })
+						.eq('session_id', data.session_id)
+						.eq('event', 'submitted');
+				} catch (e) {
+					console.error('Failed to link funnel_event to lead id', e);
+				}
 			}
 		}
 

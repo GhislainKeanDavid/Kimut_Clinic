@@ -73,6 +73,25 @@
 		}
 	}
 
+	async function handleAssignPt(lead_id, new_pt) {
+		const leadIndex = leads.findIndex((l) => l.id === lead_id);
+		if (leadIndex !== -1) leads[leadIndex].assigned_pt = new_pt;
+		try {
+			const res = await fetch('/api/assign-therapist', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ lead_id, new_pt })
+			});
+			if (!res.ok) {
+				console.error('Failed to assign therapist');
+				if (leadIndex !== -1) leads[leadIndex].assigned_pt = null;
+			}
+		} catch (e) {
+			console.error('Failed to assign therapist', e);
+			if (leadIndex !== -1) leads[leadIndex].assigned_pt = null;
+		}
+	}
+
 	function toggleProfile() {
 		profileMenuOpen = !profileMenuOpen;
 	}
@@ -116,7 +135,7 @@
 				<MetricCards {leads} bind:filterStatus />
 
 				<!-- Patient Table -->
-				<PatientTable {leads} bind:filterStatus onStatusChange={handleStatusChange} />
+				<PatientTable {leads} bind:filterStatus onStatusChange={handleStatusChange} onAssignPt={handleAssignPt} />
 			</div>
 
 		{:else if activeView === 'schedules'}
