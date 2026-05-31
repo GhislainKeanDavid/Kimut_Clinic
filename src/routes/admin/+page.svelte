@@ -15,7 +15,8 @@
 	let leads = $state(data.leads || []);
 
 	let activeView = $state('patients');
-	let filterStatus = $state('All');
+	// 'all' | 'this_week' | 'needs_attention' — driven by the metric cards and the table's filter pills.
+	let viewFilter = $state('all');
 	let profileMenuOpen = $state(false);
 
 	let realtimeChannel;
@@ -23,32 +24,48 @@
 	onMount(() => {
 		const supabase = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
 
+		// The dashboard only shows status='confirmed'. Two ways a row can enter that set:
+		//   1. INSERT directly as confirmed (rare — admin/manual paths)
+		//   2. UPDATE from pending_payment → confirmed (the normal payment-cleared path)
+		// We need to react to both, and also reflect attendance edits without firing a toast.
 		realtimeChannel = supabase
-			.channel('new-bookings')
+			.channel('confirmed-bookings')
 			.on(
 				'postgres_changes',
-				{ event: 'INSERT', schema: 'public', table: 'patient_leads' },
+				{
+					event: '*',
+					schema: 'public',
+					table: 'patient_leads',
+					filter: 'status=eq.confirmed'
+				},
 				(payload) => {
 					const lead = payload.new;
-					leads.unshift(lead);
+					if (!lead) return;
+					const existingIdx = leads.findIndex((l) => l.id === lead.id);
+					if (existingIdx === -1) {
+						leads.unshift(lead);
 
-					const src = lead.source?.toLowerCase() ?? 'web';
-					const isVoice = src === 'retell' || src === 'voice' || src === 'phone';
-					const appt = lead.datetime
-						? new Date(lead.datetime).toLocaleString('en-PH', {
-								month: 'short',
-								day: 'numeric',
-								hour: 'numeric',
-								minute: '2-digit',
-								timeZone: 'Asia/Manila'
-							})
-						: null;
+						const src = lead.source?.toLowerCase() ?? 'web';
+						const appt = lead.datetime
+							? new Date(lead.datetime).toLocaleString('en-PH', {
+									month: 'short',
+									day: 'numeric',
+									hour: 'numeric',
+									minute: '2-digit',
+									timeZone: 'Asia/Manila'
+								})
+							: null;
 
-					toastStore.add({
-						title: lead.full_name || 'New Patient',
-						body: [lead.service, appt].filter(Boolean).join(' • '),
-						source: lead.source ?? 'web'
-					});
+						toastStore.add({
+							title: lead.full_name || 'New Patient',
+							body: [lead.service, appt].filter(Boolean).join(' • '),
+							source: lead.source ?? 'web'
+						});
+					} else {
+						// In-place update — no toast, just sync the row (attendance edits, follow-up
+						// counter bumps from the No-Show workflow, etc.).
+						leads[existingIdx] = { ...leads[existingIdx], ...lead };
+					}
 				}
 			)
 			.subscribe();
@@ -57,21 +74,6 @@
 	onDestroy(() => {
 		realtimeChannel?.unsubscribe();
 	});
-
-	async function handleStatusChange(lead_id, new_status, email) {
-		const leadIndex = leads.findIndex((l) => l.id === lead_id);
-		if (leadIndex !== -1) leads[leadIndex].status = new_status;
-		try {
-			const res = await fetch('/admin/update-status', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ lead_id, new_status, email })
-			});
-			if (!res.ok) console.error('Failed to update status');
-		} catch (e) {
-			console.error('Failed to update status', e);
-		}
-	}
 
 	async function handleAttendanceChange(lead_id, attendance) {
 		const leadIndex = leads.findIndex((l) => l.id === lead_id);
@@ -152,13 +154,12 @@
 				</div>
 
 				<!-- Metric Cards -->
-				<MetricCards {leads} bind:filterStatus />
+				<MetricCards {leads} bind:viewFilter />
 
 				<!-- Patient Table -->
 				<PatientTable
 					{leads}
-					bind:filterStatus
-					onStatusChange={handleStatusChange}
+					bind:viewFilter
 					onAssignPt={handleAssignPt}
 					onAttendanceChange={handleAttendanceChange}
 				/>

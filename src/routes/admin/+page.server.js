@@ -7,10 +7,13 @@ export const load = async ({ locals }) => {
 
 	if (supabase) {
 		try {
-			// Fetch Leads
+			// Admin dashboard scope: only paid bookings ever reach the client.
+			// pending_payment rows are operational scaffolding (15-min reservation lock)
+			// and get reaped by the pg_cron sweep; admin never needs to see them.
 			const { data: leadsData, error: leadsError } = await supabase
 				.from('patient_leads')
 				.select('*')
+				.eq('status', 'confirmed')
 				.order('created_at', { ascending: false });
 
 			if (!leadsError && leadsData) {

@@ -691,45 +691,47 @@
 								{/each}
 							</div>
 
+							{#if import.meta.env.DEV}
+								<p
+									class="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-amber-700"
+								>
+									— Dev Mode · checkout simulation
+								</p>
+								<div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+									<button
+										type="button"
+										onclick={() => (formData.dev_scenario = 'success')}
+										class="flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md
+											{formData.dev_scenario === 'success'
+											? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200'
+											: 'border-Mist/60 bg-white hover:border-emerald-300'}"
+									>
+										<span class="text-sm font-semibold text-Dark">Simulate Success</span>
+										<span class="font-mono text-[10px] text-Dark/55"
+											>Marks booking as paid &rarr; appears in admin dashboard.</span
+										>
+									</button>
+									<button
+										type="button"
+										onclick={() => (formData.dev_scenario = 'abandon')}
+										class="flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md
+											{formData.dev_scenario === 'abandon'
+											? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
+											: 'border-Mist/60 bg-white hover:border-amber-300'}"
+									>
+										<span class="text-sm font-semibold text-Dark">Simulate Abandonment</span>
+										<span class="font-mono text-[10px] text-Dark/55"
+											>Stays pending &rarr; cron sweeps in 15 min, never reaches admin.</span
+										>
+									</button>
+								</div>
+							{/if}
+
 							<p class="mb-6 border-l-2 border-Mist pl-3 text-[11px] italic text-Dark/45">
 								Payments integration is currently in development. Selecting an option above does not
 								process a real charge — your slot is reserved for 15 minutes while you complete the
 								(simulated) checkout. Real GCash / bank transfer redirects ship in a future release.
 							</p>
-
-							{#if import.meta.env.DEV}
-								<div
-									class="mb-8 rounded-xl border border-dashed border-amber-300 bg-amber-50/40 p-4"
-								>
-									<p
-										class="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-700"
-									>
-										— Dev Mode · checkout simulation
-									</p>
-									<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-										{#each devScenarios as s}
-											<label
-												class="flex cursor-pointer items-start gap-2 rounded-lg border bg-white px-3 py-2 transition-colors
-													{formData.dev_scenario === s.id
-													? 'border-amber-400 ring-1 ring-amber-400'
-													: 'border-Mist/60 hover:border-amber-200'}"
-											>
-												<input
-													type="radio"
-													name="dev_scenario"
-													value={s.id}
-													bind:group={formData.dev_scenario}
-													class="mt-0.5 accent-amber-600"
-												/>
-												<div>
-													<div class="text-xs font-medium text-Dark">{s.label}</div>
-													<div class="font-mono text-[10px] text-Dark/55">{s.desc}</div>
-												</div>
-											</label>
-										{/each}
-									</div>
-								</div>
-							{/if}
 
 							<div class="flex justify-between gap-4">
 								<button class="px-6 py-2 text-Dark/60 hover:text-Dark" onclick={prevStep}
