@@ -361,6 +361,31 @@ are historical, not upcoming).
 
 ---
 
+## What was shipped (2026-05-25)
+
+### Bug fixes
+
+- **Supabase — `patient_leads` missing columns** — Assessment submissions were failing with *"Could not find the 'assigned_pt' column in the schema cache"*. Added 4 missing columns via migration:
+  ```sql
+  ALTER TABLE public.patient_leads
+    ADD COLUMN IF NOT EXISTS assigned_pt text,
+    ADD COLUMN IF NOT EXISTS additional_notes text,
+    ADD COLUMN IF NOT EXISTS session_id text,
+    ADD COLUMN IF NOT EXISTS calendar_id text;
+  ```
+
+- **n8n — Availability Check workflow rebuilt** (`Kimut Clinic – Availability Check`) — The workflow was hardcoded to one shared calendar and had no `pt` param support, so the voice agent always got wrong/empty availability data. Rebuilt to:
+  - **`Normalize Date`** (POST/Retell path) — now also extracts `pt` from `body.args.pt` or `body.pt`
+  - **`Map PT Date`** (new Code node) — consolidates `pt` + `date` from either the GET or POST path into a single item
+  - **`GCal Reyes` / `GCal Santos` / `GCal Dizon`** (3 parallel GCal nodes) — each queries the correct PT-specific calendar; fan-out from `Map PT Date`
+  - **`Merge Events`** (new Merge node) — waits for all 3 GCal queries to complete
+  - **`Code - Calculate Available Slots`** (updated) — per-PT logic:
+    - Specific PT (`?pt=reyes`): slot booked if *that* PT has an event at that hour
+    - Any/no PT: slot booked only if *all 3 PTs* are busy (available if ≥1 PT is free)
+  - Retell (POST path) and GET path both supported; both now pass `pt` through correctly
+
+---
+
 ## What was shipped (2026-05-24)
 
 ### Code changes
@@ -454,4 +479,4 @@ The existing `GOOGLE_CALENDAR_ID` remains as a fallback for Retell.
 
 4. **Google Calendars per PT:** ✅ Created. All 3 shared with the service account. IDs added to `.env`.
 
-5. **Retell voice agent:** PT selection will **not** be added to the Retell flow now. The existing `GOOGLE_CALENDAR_ID` (shared/fallback) stays wired for Retell.
+5. **Retell voice agent:** PT selection will **not** be added to the Retell flow now. The n8n Availability Check workflow (used by Retell) now queries all 3 PT calendars and correctly reports "any" availability (slot available if ≥1 PT is free). Retell can also pass `pt` in the POST body if per-PT queries are needed in future.
