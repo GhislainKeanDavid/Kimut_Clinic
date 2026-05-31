@@ -4,13 +4,11 @@
 	let { leads, filterStatus = $bindable('All') } = $props();
 
 	let totalLeads = $derived(leads.length);
-	let confirmedLeads = $derived(
-		leads.filter((l) => l.status === 'Confirmed' || l.status === 'Showed Up').length
-	);
+	let confirmedLeads = $derived(leads.filter((l) => l.status === 'confirmed').length);
+	let pendingLeads = $derived(leads.filter((l) => l.status === 'pending_payment').length);
 	let conversionRate = $derived(
 		totalLeads > 0 ? Math.round((confirmedLeads / totalLeads) * 100) : 0
 	);
-	let bookedLeads = $derived(leads.filter((l) => l.status === 'Booked').length);
 
 	const cards = $derived([
 		{
@@ -25,14 +23,14 @@
 			value: confirmedLeads,
 			trend: '+15% this week',
 			Icon: CheckCircle2,
-			filter: 'Confirmed'
+			filter: 'confirmed'
 		},
 		{
-			label: 'Conversion Rate',
-			value: `${conversionRate}%`,
-			trend: '+3% this week',
+			label: 'Awaiting Payment',
+			value: pendingLeads,
+			trend: `${conversionRate}% paid`,
 			Icon: BarChart2,
-			filter: null
+			filter: 'pending_payment'
 		}
 	]);
 

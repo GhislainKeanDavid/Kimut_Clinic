@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const PT_SLUGS = ['reyes', 'santos', 'dizon'];
 const TIMEZONE = 'Asia/Manila';
+const ASSESSMENT_FEE_PHP = 1500;
 
 function getCalendarId(pt) {
 	if (pt === 'reyes') return privateEnv.GOOGLE_CALENDAR_ID_REYES || privateEnv.GOOGLE_CALENDAR_ID;
@@ -61,7 +62,9 @@ export async function POST({ request }) {
 			session_id: data.session_id,
 			source: 'web',
 			assigned_pt,
-			calendar_id: calendarId
+			calendar_id: calendarId,
+			payment_method: data.payment_method || null,
+			payment_amount: ASSESSMENT_FEE_PHP
 		};
 
 		const n8nIntakeUrl = `${privateEnv.N8N_BASE_URL}/webhook/kimutclinic-intake`;
@@ -102,6 +105,18 @@ export async function POST({ request }) {
 				} catch (e) {
 					console.error('Failed to link funnel_event to lead id', e);
 				}
+			}
+
+			// Dev Mode: when the patient picked "Simulate Success" on the checkout step,
+			// flip the row to 'confirmed' immediately via the payment-confirmed webhook.
+			// "Simulate Abandonment" is the no-op path — pg_cron sweeps the row after 15 min.
+			if (data.dev_scenario === 'success') {
+				const paymentWebhook = `${privateEnv.N8N_BASE_URL}/webhook/kimut-payment-confirmed`;
+				fetch(paymentWebhook, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ appointment_id: result.id, amount: ASSESSMENT_FEE_PHP })
+				}).catch((err) => console.error('Dev-mode payment-confirmed webhook failed', err));
 			}
 		}
 

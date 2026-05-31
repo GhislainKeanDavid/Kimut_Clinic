@@ -51,7 +51,7 @@ async function getSupabaseBookings(timeMin, timeMax, assignedPt = null) {
 			.select('datetime, assigned_pt')
 			.gte('datetime', timeMin)
 			.lte('datetime', timeMax)
-			.in('status', ['Booked', 'Confirmed']);
+			.in('status', ['pending_payment', 'confirmed']);
 		if (assignedPt) query = query.eq('assigned_pt', assignedPt);
 		const { data } = await query;
 		return data || [];

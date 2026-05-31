@@ -73,6 +73,26 @@
 		}
 	}
 
+	async function handleAttendanceChange(lead_id, attendance) {
+		const leadIndex = leads.findIndex((l) => l.id === lead_id);
+		const previous = leadIndex !== -1 ? leads[leadIndex].attendance : null;
+		if (leadIndex !== -1) leads[leadIndex].attendance = attendance;
+		try {
+			const res = await fetch('/admin/update-attendance', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ lead_id, attendance })
+			});
+			if (!res.ok) {
+				console.error('Failed to update attendance');
+				if (leadIndex !== -1) leads[leadIndex].attendance = previous;
+			}
+		} catch (e) {
+			console.error('Failed to update attendance', e);
+			if (leadIndex !== -1) leads[leadIndex].attendance = previous;
+		}
+	}
+
 	async function handleAssignPt(lead_id, new_pt) {
 		const leadIndex = leads.findIndex((l) => l.id === lead_id);
 		if (leadIndex !== -1) leads[leadIndex].assigned_pt = new_pt;
@@ -135,7 +155,13 @@
 				<MetricCards {leads} bind:filterStatus />
 
 				<!-- Patient Table -->
-				<PatientTable {leads} bind:filterStatus onStatusChange={handleStatusChange} onAssignPt={handleAssignPt} />
+				<PatientTable
+					{leads}
+					bind:filterStatus
+					onStatusChange={handleStatusChange}
+					onAssignPt={handleAssignPt}
+					onAttendanceChange={handleAttendanceChange}
+				/>
 			</div>
 
 		{:else if activeView === 'schedules'}

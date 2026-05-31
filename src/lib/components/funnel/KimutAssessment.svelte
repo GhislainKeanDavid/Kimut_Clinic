@@ -24,13 +24,15 @@
 		service: '',
 		preferred_pt: '',
 		datetime: '',
-		additional_notes: ''
+		additional_notes: '',
+		payment_method: '',
+		dev_scenario: 'success'
 	});
 
 	let stepsContainer;
 	let session_id = '';
 
-	const totalSteps = 7;
+	const totalSteps = 8;
 
 	const concerns = [
 		{ id: 'Back & Neck Pain', desc: 'Chronic tension, disc issues, posture-related pain.' },
@@ -56,6 +58,30 @@
 		{ id: 'dizon', label: 'Dizon', initials: 'D', color: 'bg-amber-100 text-amber-700' },
 		{ id: 'any', label: 'No Preference', initials: '?', color: 'bg-Mist/60 text-Dark/40' }
 	];
+
+	const ASSESSMENT_FEE_PHP = 1500;
+
+	const paymentMethods = [
+		{ id: 'gcash', label: 'GCash', short: 'G', color: '#0070E0', kind: 'wallet' },
+		{ id: 'maya', label: 'Maya', short: 'M', color: '#6E2DCD', kind: 'wallet' },
+		{ id: 'grabpay', label: 'GrabPay', short: 'GP', color: '#00B14F', kind: 'wallet' },
+		{ id: 'shopeepay', label: 'ShopeePay', short: 'SP', color: '#EE4D2D', kind: 'wallet' },
+		{ id: 'bpi', label: 'BPI', short: 'BPI', color: '#B11116', kind: 'bank' },
+		{ id: 'bdo', label: 'BDO', short: 'BDO', color: '#00529C', kind: 'bank' },
+		{ id: 'metrobank', label: 'Metrobank', short: 'MB', color: '#0067B1', kind: 'bank' },
+		{ id: 'unionbank', label: 'UnionBank', short: 'UB', color: '#FFA500', kind: 'bank' },
+		{ id: 'security_bank', label: 'Security Bank', short: 'SB', color: '#E60012', kind: 'bank' },
+		{ id: 'landbank', label: 'LANDBANK', short: 'LB', color: '#006B3F', kind: 'bank' }
+	];
+
+	const devScenarios = [
+		{ id: 'success', label: 'Simulate Success', desc: 'Auto-mark booking as paid on submit.' },
+		{ id: 'abandon', label: 'Simulate Abandonment', desc: 'Leave pending; cron sweeps after 15m.' }
+	];
+
+	function paymentLabel(id) {
+		return paymentMethods.find((m) => m.id === id)?.label ?? '—';
+	}
 
 	// date -> { booked_slots: string[], fully_booked: boolean }
 	let dateAvailability = $state({});
@@ -608,8 +634,118 @@
 						</div>
 					{/if}
 
-					<!-- STEP 7 — Review & Submit -->
+					<!-- STEP 7 — Payment Method -->
 					{#if currentStep === 7}
+						<div class="step">
+							<h3 class="mb-3 text-2xl font-medium text-Dark">How would you like to pay?</h3>
+							<p class="mb-8 text-sm text-Dark/60">
+								The initial assessment fee is
+								<span class="font-mono font-semibold text-Dark"
+									>₱{ASSESSMENT_FEE_PHP.toLocaleString()}</span
+								>. Pick a payment method to reserve your slot.
+							</p>
+
+							<p class="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-Dark/40">
+								— E-Wallets
+							</p>
+							<div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+								{#each paymentMethods.filter((m) => m.kind === 'wallet') as m}
+									<button
+										onclick={() => (formData.payment_method = m.id)}
+										class="flex flex-col items-center gap-3 rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md
+											{formData.payment_method === m.id
+											? 'border-Accent bg-Accent/5 ring-1 ring-Accent'
+											: 'border-Mist/60 hover:border-Accent/50'}"
+									>
+										<div
+											class="flex h-11 w-11 items-center justify-center rounded-xl text-sm font-bold text-white"
+											style="background:{m.color}"
+										>
+											{m.short}
+										</div>
+										<span class="text-xs font-medium text-Dark">{m.label}</span>
+									</button>
+								{/each}
+							</div>
+
+							<p class="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-Dark/40">
+								— Bank Transfer
+							</p>
+							<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+								{#each paymentMethods.filter((m) => m.kind === 'bank') as m}
+									<button
+										onclick={() => (formData.payment_method = m.id)}
+										class="flex items-center gap-3 rounded-xl border p-3 text-left transition-all hover:border-Accent/50
+											{formData.payment_method === m.id
+											? 'border-Accent bg-Accent/5 ring-1 ring-Accent'
+											: 'border-Mist/60'}"
+									>
+										<div
+											class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold text-white"
+											style="background:{m.color}"
+										>
+											{m.short}
+										</div>
+										<span class="text-sm font-medium text-Dark">{m.label}</span>
+									</button>
+								{/each}
+							</div>
+
+							<p class="mb-6 border-l-2 border-Mist pl-3 text-[11px] italic text-Dark/45">
+								Payments integration is currently in development. Selecting an option above does not
+								process a real charge — your slot is reserved for 15 minutes while you complete the
+								(simulated) checkout. Real GCash / bank transfer redirects ship in a future release.
+							</p>
+
+							{#if import.meta.env.DEV}
+								<div
+									class="mb-8 rounded-xl border border-dashed border-amber-300 bg-amber-50/40 p-4"
+								>
+									<p
+										class="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-700"
+									>
+										— Dev Mode · checkout simulation
+									</p>
+									<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+										{#each devScenarios as s}
+											<label
+												class="flex cursor-pointer items-start gap-2 rounded-lg border bg-white px-3 py-2 transition-colors
+													{formData.dev_scenario === s.id
+													? 'border-amber-400 ring-1 ring-amber-400'
+													: 'border-Mist/60 hover:border-amber-200'}"
+											>
+												<input
+													type="radio"
+													name="dev_scenario"
+													value={s.id}
+													bind:group={formData.dev_scenario}
+													class="mt-0.5 accent-amber-600"
+												/>
+												<div>
+													<div class="text-xs font-medium text-Dark">{s.label}</div>
+													<div class="font-mono text-[10px] text-Dark/55">{s.desc}</div>
+												</div>
+											</label>
+										{/each}
+									</div>
+								</div>
+							{/if}
+
+							<div class="flex justify-between gap-4">
+								<button class="px-6 py-2 text-Dark/60 hover:text-Dark" onclick={prevStep}
+									>Back</button
+								>
+								<MagneticButton
+									class="px-8 py-3"
+									onclick={nextStep}
+									disabled={!formData.payment_method}>Continue</MagneticButton
+								>
+							</div>
+						</div>
+					{/if}
+
+					<!-- STEP 8 — Review & Submit -->
+					{#if currentStep === 8}
 						<div class="step">
 							<h3 class="mb-8 text-2xl font-medium text-Dark">Review & Submit</h3>
 
@@ -630,6 +766,13 @@
 									<div>
 										<span class="text-Dark/60">Therapist:</span>
 										{ptLabel(formData.preferred_pt)}
+									</div>
+									<div>
+										<span class="text-Dark/60">Payment:</span>
+										{paymentLabel(formData.payment_method)}
+										<span class="text-Dark/40"
+											>· ₱{ASSESSMENT_FEE_PHP.toLocaleString()}</span
+										>
 									</div>
 									<div class="col-span-2">
 										<span class="text-Dark/60">Time:</span>

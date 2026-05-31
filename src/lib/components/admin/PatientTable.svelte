@@ -11,21 +11,58 @@
 		Pencil
 	} from 'lucide-svelte';
 
-	let { leads, filterStatus = $bindable('All'), onStatusChange, onAssignPt } = $props();
+	let {
+		leads,
+		filterStatus = $bindable('All'),
+		onStatusChange,
+		onAssignPt,
+		onAttendanceChange
+	} = $props();
 
-	const statusOptions = ['Booked', 'Confirmed', 'Showed Up', 'No Show', 'Lost'];
+	const statusOptions = ['pending_payment', 'confirmed'];
 	const statusFilters = ['All', ...statusOptions];
 
 	const statusCfg = {
-		Booked: { dot: 'bg-blue-500', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
-		Confirmed: { dot: 'bg-green-500', badge: 'bg-green-50 text-green-700 border-green-200' },
-		'Showed Up': {
-			dot: 'bg-emerald-500',
-			badge: 'bg-emerald-50 text-emerald-800 border-emerald-200'
+		pending_payment: {
+			dot: 'bg-amber-500',
+			badge: 'bg-amber-50 text-amber-800 border-amber-200',
+			label: 'Pending Payment'
 		},
-		'No Show': { dot: 'bg-red-500', badge: 'bg-red-50 text-red-700 border-red-200' },
-		Lost: { dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-600 border-gray-200' }
+		confirmed: {
+			dot: 'bg-emerald-500',
+			badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+			label: 'Confirmed'
+		}
 	};
+
+	function statusLabel(s) {
+		return statusCfg[s]?.label ?? s;
+	}
+
+	const attendanceOptions = ['scheduled', 'attended', 'no_show'];
+	const attendanceCfg = {
+		scheduled: {
+			label: 'Scheduled',
+			badge: 'bg-Mist/30 text-Dark/60 border-Mist/60'
+		},
+		attended: {
+			label: 'Attended',
+			badge: 'bg-green-50 text-green-700 border-green-200'
+		},
+		no_show: {
+			label: 'No-show',
+			badge: 'bg-red-50 text-red-700 border-red-200'
+		}
+	};
+
+	function attendanceLabel(a) {
+		return attendanceCfg[a]?.label ?? attendanceCfg.scheduled.label;
+	}
+
+	function isAppointmentPast(datetime) {
+		if (!datetime) return false;
+		return new Date(datetime).getTime() < Date.now();
+	}
 
 	const ptCfg = {
 		reyes: { label: 'Reyes', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -72,7 +109,7 @@
 				av = new Date(a.created_at).getTime();
 				bv = new Date(b.created_at).getTime();
 			} else if (sortField === 'status') {
-				const order = ['Booked', 'Confirmed', 'Showed Up', 'No Show', 'Lost'];
+				const order = ['pending_payment', 'confirmed'];
 				av = order.indexOf(a.status);
 				bv = order.indexOf(b.status);
 			} else {
@@ -149,7 +186,7 @@
 						? 'bg-Primary text-white'
 						: 'text-Dark/40 hover:bg-Mist/50 hover:text-Dark'}"
 			>
-				{f}
+				{f === 'All' ? f : statusLabel(f)}
 			</button>
 		{/each}
 	</div>
@@ -245,7 +282,7 @@
 					</tr>
 				{/if}
 				{#each processedLeads as lead (lead.id)}
-					{@const sc = statusCfg[lead.status] ?? statusCfg['Lost']}
+					{@const sc = statusCfg[lead.status] ?? statusCfg['pending_payment']}
 					{@const days = daysSince(lead.created_at)}
 					{@const isVoice = isVoiceSource(lead)}
 					{@const ptSlug = lead.assigned_pt?.toLowerCase()}
@@ -322,7 +359,7 @@
 									onchange={(e) => onStatusChange(lead.id, e.target.value, lead.email)}
 								>
 									{#each statusOptions as status}
-										<option value={status}>{status}</option>
+										<option value={status}>{statusLabel(status)}</option>
 									{/each}
 								</select>
 								<span
@@ -332,6 +369,28 @@
 									class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 opacity-40"
 								/>
 							</div>
+
+							{#if lead.status === 'confirmed'}
+								{@const ac = attendanceCfg[lead.attendance] ?? attendanceCfg.scheduled}
+								{@const past = isAppointmentPast(lead.datetime)}
+								<div class="mt-1.5 relative inline-block">
+									<select
+										class="appearance-none rounded-lg border pl-2.5 pr-6 py-1 font-mono text-[10px] font-medium outline-none cursor-pointer transition-all hover:brightness-95 focus:ring-1 focus:ring-Primary/25 {ac.badge} {past && lead.attendance === 'scheduled' ? 'ring-1 ring-amber-300' : ''}"
+										value={lead.attendance ?? 'scheduled'}
+										title={past
+											? 'Appointment is in the past — please mark outcome'
+											: 'Attendance (locks after appointment date)'}
+										onchange={(e) => onAttendanceChange(lead.id, e.target.value)}
+									>
+										{#each attendanceOptions as a}
+											<option value={a}>{attendanceLabel(a)}</option>
+										{/each}
+									</select>
+									<ChevronDown
+										class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 opacity-40"
+									/>
+								</div>
+							{/if}
 
 							<!-- PT assignment — only shown for unassigned leads -->
 							{#if !lead.assigned_pt}

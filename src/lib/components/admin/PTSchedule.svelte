@@ -42,7 +42,7 @@
 		const first = dayStr(weekDays[0]);
 		const last = dayStr(weekDays[5]);
 		return leads.filter((l) => {
-			if (!l.datetime || !['Booked', 'Confirmed'].includes(l.status) || !l.assigned_pt)
+			if (!l.datetime || !['pending_payment', 'confirmed'].includes(l.status) || !l.assigned_pt)
 				return false;
 			const d = new Date(l.datetime).toLocaleDateString('en-CA', { timeZone: TIMEZONE });
 			return d >= first && d <= last;
