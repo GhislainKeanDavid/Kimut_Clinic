@@ -691,41 +691,39 @@
 								{/each}
 							</div>
 
-							{#if import.meta.env.DEV}
-								<p
-									class="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-amber-700"
+							<p
+								class="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-amber-700"
+							>
+								— Dev Mode · checkout simulation
+							</p>
+							<div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+								<button
+									type="button"
+									onclick={() => (formData.dev_scenario = 'success')}
+									class="flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md
+										{formData.dev_scenario === 'success'
+										? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200'
+										: 'border-Mist/60 bg-white hover:border-emerald-300'}"
 								>
-									— Dev Mode · checkout simulation
-								</p>
-								<div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-									<button
-										type="button"
-										onclick={() => (formData.dev_scenario = 'success')}
-										class="flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md
-											{formData.dev_scenario === 'success'
-											? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200'
-											: 'border-Mist/60 bg-white hover:border-emerald-300'}"
+									<span class="text-sm font-semibold text-Dark">Simulate Success</span>
+									<span class="font-mono text-[10px] text-Dark/55"
+										>Marks booking as paid &rarr; appears in admin dashboard.</span
 									>
-										<span class="text-sm font-semibold text-Dark">Simulate Success</span>
-										<span class="font-mono text-[10px] text-Dark/55"
-											>Marks booking as paid &rarr; appears in admin dashboard.</span
-										>
-									</button>
-									<button
-										type="button"
-										onclick={() => (formData.dev_scenario = 'abandon')}
-										class="flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md
-											{formData.dev_scenario === 'abandon'
-											? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
-											: 'border-Mist/60 bg-white hover:border-amber-300'}"
+								</button>
+								<button
+									type="button"
+									onclick={() => (formData.dev_scenario = 'abandon')}
+									class="flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md
+										{formData.dev_scenario === 'abandon'
+										? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
+										: 'border-Mist/60 bg-white hover:border-amber-300'}"
+								>
+									<span class="text-sm font-semibold text-Dark">Simulate Abandonment</span>
+									<span class="font-mono text-[10px] text-Dark/55"
+										>Stays pending &rarr; cron sweeps in 15 min, never reaches admin.</span
 									>
-										<span class="text-sm font-semibold text-Dark">Simulate Abandonment</span>
-										<span class="font-mono text-[10px] text-Dark/55"
-											>Stays pending &rarr; cron sweeps in 15 min, never reaches admin.</span
-										>
-									</button>
-								</div>
-							{/if}
+								</button>
+							</div>
 
 							<p class="mb-6 border-l-2 border-Mist pl-3 text-[11px] italic text-Dark/45">
 								Payments integration is currently in development. Selecting an option above does not
