@@ -32,7 +32,7 @@
 	let stepsContainer;
 	let session_id = '';
 
-	const totalSteps = 8;
+	const totalSteps = 7;
 
 	const concerns = [
 		{ id: 'Back & Neck Pain', desc: 'Chronic tension, disc issues, posture-related pain.' },
@@ -96,9 +96,9 @@
 		logFunnelEvent('form_started');
 	});
 
-	// Fetch month availability when entering step 6 (slot picker) with the selected PT
+	// Fetch month availability once a therapist is chosen on step 5 (combined therapist + slot picker)
 	$effect(() => {
-		if (currentStep === 6) {
+		if (currentStep === 5 && formData.preferred_pt) {
 			fetchMonthAvailability(currentMonthStr());
 		}
 	});
@@ -197,12 +197,11 @@
 
 	function selectPt(ptId) {
 		formData.preferred_pt = ptId;
-		// Reset slot state so step 6 re-fetches for the new PT
+		// Reset slot state so the picker re-fetches for the new PT
 		selectedDateStr = '';
 		formData.datetime = '';
 		dateAvailability = {};
 		monthFullyBooked = {};
-		nextStep();
 	}
 
 	async function submitAssessment() {
@@ -516,7 +515,7 @@
 						</div>
 					{/if}
 
-					<!-- STEP 5 — Choose therapist -->
+					<!-- STEP 5 — Choose therapist + Pick a slot (combined) -->
 					{#if currentStep === 5}
 						<div class="step">
 							<h3 class="mb-3 text-2xl font-medium text-Dark">Choose your therapist</h3>
@@ -541,101 +540,95 @@
 									</button>
 								{/each}
 							</div>
-							<div class="mt-8 flex justify-start">
-								<button class="px-6 py-2 text-Dark/60 hover:text-Dark" onclick={prevStep}>Back</button>
-							</div>
-						</div>
-					{/if}
 
-					<!-- STEP 6 — Pick a slot -->
-					{#if currentStep === 6}
-						<div class="step">
-							<h3 class="mb-6 text-2xl font-medium text-Dark">Pick a slot</h3>
-							<div class="mx-auto max-w-2xl">
-								<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-									<!-- Calendar -->
-									<div>
-										<p class="mb-2 text-sm font-medium text-Dark/70">Select a date</p>
-										<CalendarPicker
-											bind:value={selectedDateStr}
-											minDate={getTodayStr()}
-											fullyBookedDates={allFullyBookedDates}
-											isLoading={isLoadingMonth}
-											onMonthChange={handleMonthChange}
-											onSelect={handleCalendarSelect}
-										/>
-									</div>
+							{#if formData.preferred_pt}
+								<div class="mt-10 border-t border-Mist/40 pt-8">
+									<h4 class="mb-6 text-xl font-medium text-Dark">Pick a slot</h4>
+									<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+										<!-- Calendar -->
+										<div>
+											<p class="mb-2 text-sm font-medium text-Dark/70">Select a date</p>
+											<CalendarPicker
+												bind:value={selectedDateStr}
+												minDate={getTodayStr()}
+												fullyBookedDates={allFullyBookedDates}
+												isLoading={isLoadingMonth}
+												onMonthChange={handleMonthChange}
+												onSelect={handleCalendarSelect}
+											/>
+										</div>
 
-									<!-- Time slots -->
-									<div>
-										<p class="mb-2 text-sm font-medium text-Dark/70">Select a time</p>
-										{#if !selectedDateStr}
-											<div
-												class="flex h-full min-h-[200px] items-center justify-center rounded-2xl border border-dashed border-Mist/60"
-											>
-												<p class="text-sm text-Dark/40">Choose a date first</p>
-											</div>
-										{:else if isLoadingSlots}
-											<div
-												class="flex h-full min-h-[200px] items-center justify-center rounded-2xl border border-Mist/60"
-											>
+										<!-- Time slots -->
+										<div>
+											<p class="mb-2 text-sm font-medium text-Dark/70">Select a time</p>
+											{#if !selectedDateStr}
 												<div
-													class="h-8 w-8 animate-spin rounded-full border-2 border-Mist border-t-Accent"
-												></div>
-											</div>
-										{:else}
-											{@const daySlots = generateSlots(selectedDateStr)}
-											{@const bookedSlots =
-												dateAvailability[selectedDateStr]?.booked_slots || []}
-											{#if daySlots.length === 0}
+													class="flex h-full min-h-[200px] items-center justify-center rounded-2xl border border-dashed border-Mist/60"
+												>
+													<p class="text-sm text-Dark/40">Choose a date first</p>
+												</div>
+											{:else if isLoadingSlots}
 												<div
 													class="flex h-full min-h-[200px] items-center justify-center rounded-2xl border border-Mist/60"
 												>
-													<p class="text-sm text-Dark/50">Closed on Sundays</p>
+													<div
+														class="h-8 w-8 animate-spin rounded-full border-2 border-Mist border-t-Accent"
+													></div>
 												</div>
 											{:else}
-												<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-													{#each daySlots as slot}
-														{#if bookedSlots.includes(slot)}
-															<div
-																class="cursor-not-allowed rounded-lg border border-transparent bg-Mist/20 py-2.5 text-center text-sm text-Dark/30 line-through"
-															>
-																{formatTime(slot)}
-															</div>
-														{:else}
-															<button
-																class="rounded-lg border py-2.5 text-center text-sm transition-all hover:border-Accent hover:text-Accent
-																	{formData.datetime.includes(slot)
-																		? 'border-Accent bg-Accent text-white'
-																		: 'border-Mist/60 bg-transparent text-Dark'}"
-																onclick={() =>
-																	(formData.datetime = selectedDateStr + 'T' + slot + ':00')}
-																>{formatTime(slot)}</button
-															>
-														{/if}
-													{/each}
-												</div>
+												{@const daySlots = generateSlots(selectedDateStr)}
+												{@const bookedSlots =
+													dateAvailability[selectedDateStr]?.booked_slots || []}
+												{#if daySlots.length === 0}
+													<div
+														class="flex h-full min-h-[200px] items-center justify-center rounded-2xl border border-Mist/60"
+													>
+														<p class="text-sm text-Dark/50">Closed on Sundays</p>
+													</div>
+												{:else}
+													<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+														{#each daySlots as slot}
+															{#if bookedSlots.includes(slot)}
+																<div
+																	class="cursor-not-allowed rounded-lg border border-transparent bg-Mist/20 py-2.5 text-center text-sm text-Dark/30 line-through"
+																>
+																	{formatTime(slot)}
+																</div>
+															{:else}
+																<button
+																	class="rounded-lg border py-2.5 text-center text-sm transition-all hover:border-Accent hover:text-Accent
+																		{formData.datetime.includes(slot)
+																			? 'border-Accent bg-Accent text-white'
+																			: 'border-Mist/60 bg-transparent text-Dark'}"
+																	onclick={() =>
+																		(formData.datetime = selectedDateStr + 'T' + slot + ':00')}
+																	>{formatTime(slot)}</button
+																>
+															{/if}
+														{/each}
+													</div>
+												{/if}
 											{/if}
-										{/if}
+										</div>
 									</div>
 								</div>
+							{/if}
 
-								<div class="mt-8 flex justify-between gap-4">
-									<button class="px-6 py-2 text-Dark/60 hover:text-Dark" onclick={prevStep}
-										>Back</button
-									>
-									<MagneticButton
-										class="px-8 py-3"
-										onclick={nextStep}
-										disabled={!formData.datetime}>Continue</MagneticButton
-									>
-								</div>
+							<div class="mt-8 flex justify-between gap-4">
+								<button class="px-6 py-2 text-Dark/60 hover:text-Dark" onclick={prevStep}
+									>Back</button
+								>
+								<MagneticButton
+									class="px-8 py-3"
+									onclick={nextStep}
+									disabled={!formData.preferred_pt || !formData.datetime}>Continue</MagneticButton
+								>
 							</div>
 						</div>
 					{/if}
 
-					<!-- STEP 7 — Payment Method -->
-					{#if currentStep === 7}
+					<!-- STEP 6 — Payment Method -->
+					{#if currentStep === 6}
 						<div class="step">
 							<h3 class="mb-3 text-2xl font-medium text-Dark">How would you like to pay?</h3>
 							<p class="mb-8 text-sm text-Dark/60">
@@ -744,8 +737,8 @@
 						</div>
 					{/if}
 
-					<!-- STEP 8 — Review & Submit -->
-					{#if currentStep === 8}
+					<!-- STEP 7 — Review & Submit -->
+					{#if currentStep === 7}
 						<div class="step">
 							<h3 class="mb-8 text-2xl font-medium text-Dark">Review & Submit</h3>
 

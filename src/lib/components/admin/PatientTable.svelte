@@ -140,20 +140,40 @@
 		return `${days}d ago`;
 	}
 
-	function daysSince(dateStr) {
-		return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+	const MS_PER_DAY = 1000 * 60 * 60 * 24;
+	const PH_TZ = 'Asia/Manila';
+
+	function daysUntilAppt(datetimeStr) {
+		if (!datetimeStr) return null;
+		const apptYmd = new Date(datetimeStr).toLocaleDateString('en-CA', { timeZone: PH_TZ });
+		const todayYmd = new Date().toLocaleDateString('en-CA', { timeZone: PH_TZ });
+		const appt = new Date(apptYmd + 'T00:00:00Z').getTime();
+		const today = new Date(todayYmd + 'T00:00:00Z').getTime();
+		return Math.round((appt - today) / MS_PER_DAY);
 	}
 
-	function daysColor(days) {
-		if (days <= 1) return 'text-green-700';
-		if (days <= 3) return 'text-amber-700';
-		return 'text-red-700';
+	function daysUntilLabel(days) {
+		if (days === null) return '—';
+		if (days < 0) return `${-days}d ago`;
+		if (days === 0) return 'Today';
+		if (days === 1) return '1d';
+		return `${days}d`;
 	}
 
-	function daysBg(days) {
-		if (days <= 1) return 'bg-green-50 border-green-200';
-		if (days <= 3) return 'bg-amber-50 border-amber-200';
-		return 'bg-red-50 border-red-200';
+	function daysUntilColor(days) {
+		if (days === null) return 'text-Dark/40';
+		if (days < 0) return 'text-red-700';
+		if (days === 0) return 'text-amber-700';
+		if (days <= 3) return 'text-green-700';
+		return 'text-blue-700';
+	}
+
+	function daysUntilBg(days) {
+		if (days === null) return 'bg-Mist/20 border-Mist/60';
+		if (days < 0) return 'bg-red-50 border-red-200';
+		if (days === 0) return 'bg-amber-50 border-amber-200';
+		if (days <= 3) return 'bg-green-50 border-green-200';
+		return 'bg-blue-50 border-blue-200';
 	}
 
 	function isVoiceSource(lead) {
@@ -252,8 +272,8 @@
 					<th class="w-[100px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Assigned PT</th
 					>
-					<th class="w-[90px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
-						>Lead Age</th
+					<th class="w-[110px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
+						>Days Until Appt</th
 					>
 					<th class="px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Service</th
@@ -276,7 +296,7 @@
 					</tr>
 				{/if}
 				{#each processedLeads as lead (lead.id)}
-					{@const days = daysSince(lead.created_at)}
+					{@const days = daysUntilAppt(lead.datetime)}
 					{@const isVoice = isVoiceSource(lead)}
 					{@const ptSlug = lead.assigned_pt?.toLowerCase()}
 					{@const pc = ptCfg[ptSlug]}
@@ -350,12 +370,12 @@
 							{/if}
 						</td>
 
-						<!-- Lead Age -->
+						<!-- Days Until Appointment -->
 						<td class="px-5 py-4">
 							<span
-								class="inline-flex items-center rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold {daysColor(days)} {daysBg(days)}"
+								class="inline-flex items-center rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold {daysUntilColor(days)} {daysUntilBg(days)}"
 							>
-								{days === 0 ? '<1d' : `${days}d`}
+								{daysUntilLabel(days)}
 							</span>
 						</td>
 

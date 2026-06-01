@@ -62,7 +62,7 @@
 		return `₱${Number(n || 0).toLocaleString('en-PH')}`;
 	}
 
-	const cards = $derived([
+	const secondaryCards = $derived([
 		{
 			id: 'total',
 			label: 'Total Patients',
@@ -92,14 +92,6 @@
 			Icon: AlertTriangle,
 			filter: 'needs_attention',
 			tone: needsAttentionCount > 0 ? 'warn' : 'neutral'
-		},
-		{
-			id: 'revenue',
-			label: 'Revenue',
-			value: peso(weeklyRevenue),
-			subline: `${peso(monthlyRevenue)} this month`,
-			Icon: Wallet,
-			filter: null
 		}
 	]);
 
@@ -109,38 +101,56 @@
 	}
 </script>
 
-<div class="mb-8 grid grid-cols-2 gap-5 lg:grid-cols-4">
-	{#each cards as card}
-		{@const isActive = card.filter && viewFilter === card.filter}
-		{@const warn = card.tone === 'warn'}
-		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-		<div
-			role={card.filter ? 'button' : 'article'}
-			tabindex={card.filter ? 0 : undefined}
-			onclick={() => handleClick(card.filter)}
-			onkeydown={(e) => e.key === 'Enter' && handleClick(card.filter)}
-			class="rounded-2xl border bg-white p-6 shadow-sm select-none transition-all duration-200
-				{card.filter ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0' : ''}
-				{isActive
-					? 'border-Primary/40 ring-2 ring-Primary/15 shadow-md -translate-y-0.5'
-					: warn
-						? 'border-amber-300 ring-1 ring-amber-200/60'
-						: 'border-Mist/60 hover:border-Mist'}"
-		>
-			<div class="mb-4 flex items-center justify-between">
-				<h3 class="font-mono text-[11px] uppercase tracking-widest text-Dark/45">{card.label}</h3>
-				<card.Icon
-					class="h-4 w-4 transition-colors {isActive
-						? 'text-Primary'
-						: warn
-							? 'text-amber-600'
-							: 'text-Dark/30'}"
-				/>
-			</div>
-			<p class="font-sans text-3xl font-medium text-Dark mb-3 leading-none">{card.value}</p>
-			<p class="font-mono text-[10px] uppercase tracking-wider {warn ? 'text-amber-700' : 'text-Dark/40'}">
-				{card.subline}
-			</p>
+<div class="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2.4fr)]">
+	<!-- Revenue card — leftmost, visually separated -->
+	<div
+		class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-Primary via-Primary to-indigo-600 p-6 text-white shadow-md"
+	>
+		<div class="mb-3 flex items-center justify-between">
+			<h3 class="font-mono text-[11px] uppercase tracking-widest text-white/70">Your Total Revenue</h3>
+			<Wallet class="h-4 w-4 text-white/70" />
 		</div>
-	{/each}
+		<p class="font-sans text-4xl font-semibold leading-none mb-3">{peso(weeklyRevenue)}</p>
+		<p class="font-mono text-[10px] uppercase tracking-wider text-white/70">
+			{peso(monthlyRevenue)} this month
+		</p>
+		<div class="pointer-events-none absolute -right-8 -bottom-8 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
+	</div>
+
+	<!-- Secondary cards — grouped together -->
+	<div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+		{#each secondaryCards as card}
+			{@const isActive = card.filter && viewFilter === card.filter}
+			{@const warn = card.tone === 'warn'}
+			<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+			<div
+				role={card.filter ? 'button' : 'article'}
+				tabindex={card.filter ? 0 : undefined}
+				onclick={() => handleClick(card.filter)}
+				onkeydown={(e) => e.key === 'Enter' && handleClick(card.filter)}
+				class="rounded-2xl border bg-white p-5 shadow-sm select-none transition-all duration-200
+					{card.filter ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0' : ''}
+					{isActive
+						? 'border-Primary/40 ring-2 ring-Primary/15 shadow-md -translate-y-0.5'
+						: warn
+							? 'border-amber-300 ring-1 ring-amber-200/60'
+							: 'border-Mist/60 hover:border-Mist'}"
+			>
+				<div class="mb-3 flex items-center justify-between">
+					<h3 class="font-mono text-[10px] uppercase tracking-widest text-Dark/45">{card.label}</h3>
+					<card.Icon
+						class="h-4 w-4 transition-colors {isActive
+							? 'text-Primary'
+							: warn
+								? 'text-amber-600'
+								: 'text-Dark/30'}"
+					/>
+				</div>
+				<p class="font-sans text-2xl font-medium text-Dark mb-2 leading-none">{card.value}</p>
+				<p class="font-mono text-[9px] uppercase tracking-wider {warn ? 'text-amber-700' : 'text-Dark/40'}">
+					{card.subline}
+				</p>
+			</div>
+		{/each}
+	</div>
 </div>

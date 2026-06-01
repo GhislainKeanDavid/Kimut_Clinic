@@ -9,6 +9,8 @@
 	import PatientTable from '$lib/components/admin/PatientTable.svelte';
 	import PTSchedule from '$lib/components/admin/PTSchedule.svelte';
 	import ToastNotifications from '$lib/components/admin/ToastNotifications.svelte';
+	import ActivityFeed from '$lib/components/admin/ActivityFeed.svelte';
+	import OnDutyTherapists from '$lib/components/admin/OnDutyTherapists.svelte';
 	import { toastStore } from '$lib/stores/toasts.svelte.js';
 
 	let { data } = $props();
@@ -131,7 +133,7 @@
 	<!-- Main content area -->
 	<main class="flex-1 overflow-y-auto flex flex-col">
 		{#if activeView === 'patients'}
-			<div class="mx-auto w-full max-w-6xl px-8 py-8">
+			<div class="mx-auto w-full max-w-[1500px] px-8 py-8">
 				<!-- Live status indicator -->
 				<div class="mb-6 flex items-center justify-between">
 					<div>
@@ -153,16 +155,25 @@
 					</span>
 				</div>
 
-				<!-- Metric Cards -->
-				<MetricCards {leads} bind:viewFilter />
+				<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+					<div class="min-w-0">
+						<!-- Metric Cards -->
+						<MetricCards {leads} bind:viewFilter />
 
-				<!-- Patient Table -->
-				<PatientTable
-					{leads}
-					bind:viewFilter
-					onAssignPt={handleAssignPt}
-					onAttendanceChange={handleAttendanceChange}
-				/>
+						<!-- Patient Table -->
+						<PatientTable
+							{leads}
+							bind:viewFilter
+							onAssignPt={handleAssignPt}
+							onAttendanceChange={handleAttendanceChange}
+						/>
+					</div>
+
+					<aside class="space-y-5">
+						<ActivityFeed {leads} />
+						<OnDutyTherapists {leads} />
+					</aside>
+				</div>
 			</div>
 
 		{:else if activeView === 'schedules'}
