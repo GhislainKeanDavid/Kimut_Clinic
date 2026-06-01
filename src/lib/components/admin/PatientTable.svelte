@@ -280,6 +280,8 @@
 					{@const isVoice = isVoiceSource(lead)}
 					{@const ptSlug = lead.assigned_pt?.toLowerCase()}
 					{@const pc = ptCfg[ptSlug]}
+					{@const ac = attendanceCfg[lead.attendance] ?? attendanceCfg.scheduled}
+					{@const past = isAppointmentPast(lead.datetime)}
 					<tr class="relative transition-colors hover:bg-Mist/10 group">
 						<!-- Date -->
 						<td class="whitespace-nowrap px-5 py-4">
@@ -362,8 +364,6 @@
 
 						<!-- Attendance -->
 						<td class="px-5 py-4">
-							{@const ac = attendanceCfg[lead.attendance] ?? attendanceCfg.scheduled}
-							{@const past = isAppointmentPast(lead.datetime)}
 							<div class="relative inline-block">
 								<select
 									class="appearance-none rounded-lg border pl-2.5 pr-7 py-1.5 font-mono text-[11px] font-medium outline-none cursor-pointer transition-all hover:brightness-95 focus:ring-1 focus:ring-Primary/25 {ac.badge} {past && (lead.attendance ?? 'scheduled') === 'scheduled' ? 'ring-1 ring-amber-300' : ''}"
