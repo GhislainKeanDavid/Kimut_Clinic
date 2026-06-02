@@ -7,7 +7,7 @@
 		{
 			label: 'Patient Management',
 			items: [
-				{ id: 'patients', label: 'Patient List', Icon: Users },
+				{ id: 'patients', label: 'Dashboard', Icon: Users },
 				{ id: 'schedules', label: 'PT Schedules', Icon: CalendarDays },
 				{ id: 'analytics', label: 'Funnel Analytics', Icon: BarChart2 }
 			]

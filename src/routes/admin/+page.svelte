@@ -134,27 +134,6 @@
 	<main class="flex-1 overflow-y-auto flex flex-col">
 		{#if activeView === 'patients'}
 			<div class="mx-auto w-full max-w-[1500px] px-8 py-8">
-				<!-- Live status indicator -->
-				<div class="mb-6 flex items-center justify-between">
-					<div>
-						<h1 class="font-serif text-2xl italic text-Dark mb-1">Patient List</h1>
-						<p class="font-mono text-[11px] text-Dark/40 uppercase tracking-widest">
-							Patient Management
-						</p>
-					</div>
-					<span
-						class="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-Dark/35"
-					>
-						<span class="relative flex h-1.5 w-1.5">
-							<span
-								class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"
-							></span>
-							<span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400"></span>
-						</span>
-						Live Pipeline
-					</span>
-				</div>
-
 				<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
 					<div class="min-w-0">
 						<!-- Metric Cards -->

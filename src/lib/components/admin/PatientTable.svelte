@@ -217,10 +217,13 @@
 
 	function daysUntilLabel(days) {
 		if (days === null) return '—';
-		if (days < 0) return `${-days}d ago`;
+		if (days < 0) {
+			const n = -days;
+			return n === 1 ? '1 day ago' : `${n} days ago`;
+		}
 		if (days === 0) return 'Today';
-		if (days === 1) return '1d';
-		return `${days}d`;
+		if (days === 1) return '1 day';
+		return `${days} days`;
 	}
 
 	function daysUntilColor(days) {
@@ -254,43 +257,40 @@
 	];
 </script>
 
-<!-- Toolbar -->
-<div class="mb-0 flex flex-wrap items-center gap-2 border-b border-Mist/60 pb-0">
-	<!-- Search -->
-	<div class="relative w-48 mb-2.5">
-		<Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-Dark/35" />
-		<input
-			type="text"
-			placeholder="Search patients…"
-			bind:value={searchQuery}
-			class="w-full rounded-lg border border-Mist/60 bg-white/70 pl-7 pr-3 py-1.5 font-mono text-[11px] text-Dark placeholder:text-Dark/30 outline-none focus:border-Primary/50 focus:ring-1 focus:ring-Primary/20 transition-colors"
-		/>
+<!-- Single white container wrapping toolbar + table + pagination -->
+<div class="overflow-hidden rounded-2xl border border-Mist/60 bg-white shadow-sm">
+	<!-- Toolbar: search + view filter pills + counter -->
+	<div class="flex flex-wrap items-center gap-2 border-b border-Mist/60 px-5 py-3">
+		<!-- Search -->
+		<div class="relative w-48">
+			<Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-Dark/35" />
+			<input
+				type="text"
+				placeholder="Search patients…"
+				bind:value={searchQuery}
+				class="w-full rounded-lg border border-Mist/60 bg-white pl-7 pr-3 py-1.5 font-mono text-[11px] text-Dark placeholder:text-Dark/30 outline-none focus:border-Primary/50 focus:ring-1 focus:ring-Primary/20 transition-colors"
+			/>
+		</div>
+
+		<!-- View filter pills (matches the MetricCards click targets) -->
+		<div class="flex flex-wrap items-center gap-1">
+			{#each viewFilters as f}
+				<button
+					onclick={() => (viewFilter = f.id)}
+					class="rounded-lg px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors
+						{viewFilter === f.id
+							? 'bg-Primary text-white'
+							: 'text-Dark/40 hover:bg-Mist/50 hover:text-Dark'}"
+				>
+					{f.label}
+				</button>
+			{/each}
+		</div>
+
+		<span class="ml-auto font-mono text-[10px] tracking-widest text-Dark/30">
+			{totalFiltered}/{totalAll}
+		</span>
 	</div>
-
-	<!-- View filter pills (matches the MetricCards click targets) -->
-	<div class="flex flex-wrap items-center gap-1 mb-2.5">
-		{#each viewFilters as f}
-			<button
-				onclick={() => (viewFilter = f.id)}
-				class="rounded-lg px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors
-					{viewFilter === f.id
-						? 'bg-Primary text-white'
-						: 'text-Dark/40 hover:bg-Mist/50 hover:text-Dark'}"
-			>
-				{f.label}
-			</button>
-		{/each}
-	</div>
-
-	<span class="mb-2.5 font-mono text-[10px] tracking-widest text-Dark/30">
-		{totalFiltered}/{totalAll}
-	</span>
-</div>
-
-<!-- Table -->
-<div
-	class="overflow-hidden rounded-b-2xl rounded-t-none border border-t-0 border-Mist/60 bg-white shadow-sm"
->
 	<div class="overflow-x-auto">
 		<table class="w-full table-fixed text-left text-sm">
 			<thead class="bg-Mist/20">
@@ -373,7 +373,7 @@
 							{/if}
 						</div>
 					</th>
-					<th class="w-[110px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
+					<th class="w-[140px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Days Until Appt</th
 					>
 					<th class="px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
