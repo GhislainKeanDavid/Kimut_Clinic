@@ -3,7 +3,11 @@
 		Search,
 		ChevronDown,
 		ChevronUp,
+		ChevronLeft,
+		ChevronRight,
 		ArrowUpDown,
+		Filter,
+		Check,
 		Globe,
 		Phone,
 		MoreVertical,
@@ -56,13 +60,17 @@
 		santos: { label: 'Santos', badge: 'bg-green-50 text-green-700 border-green-200' },
 		dizon: { label: 'Dizon', badge: 'bg-amber-50 text-amber-700 border-amber-200' }
 	};
-	const ptFilters = ['All PTs', 'Reyes', 'Santos', 'Dizon', 'Unassigned'];
+	const ptFilters = ['All Therapists', 'Reyes', 'Santos', 'Dizon', 'Unassigned'];
+
+	const PAGE_SIZE = 10;
 
 	let searchQuery = $state('');
 	let sortField = $state('date');
 	let sortDir = $state('desc');
 	let openActionRow = $state(null);
-	let filterPT = $state('All PTs');
+	let filterPT = $state('All Therapists');
+	let therapistMenuOpen = $state(false);
+	let currentPage = $state(1);
 
 	function toggleSort(field) {
 		if (sortField === field) {
@@ -100,7 +108,7 @@
 		const q = searchQuery.toLowerCase();
 		let result = leads.filter((l) => {
 			const matchesPT =
-				filterPT === 'All PTs' ||
+				filterPT === 'All Therapists' ||
 				(filterPT === 'Unassigned'
 					? !l.assigned_pt
 					: l.assigned_pt?.toLowerCase() === filterPT.toLowerCase());
@@ -131,6 +139,61 @@
 
 	let totalFiltered = $derived(processedLeads.length);
 	let totalAll = $derived(leads.length);
+	let totalPages = $derived(Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE)));
+
+	// Snap currentPage back into range when the filtered set shrinks (e.g. after filter changes)
+	$effect(() => {
+		if (currentPage > totalPages) currentPage = totalPages;
+		if (currentPage < 1) currentPage = 1;
+	});
+
+	// Reset to first page whenever filters/search change
+	$effect(() => {
+		searchQuery;
+		viewFilter;
+		filterPT;
+		currentPage = 1;
+	});
+
+	let pagedLeads = $derived(
+		processedLeads.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+	);
+	let emptyRowCount = $derived(Math.max(0, PAGE_SIZE - pagedLeads.length));
+	let rangeStart = $derived(totalFiltered === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1);
+	let rangeEnd = $derived(Math.min(currentPage * PAGE_SIZE, totalFiltered));
+
+	function goToPage(p) {
+		if (p < 1 || p > totalPages) return;
+		currentPage = p;
+	}
+
+	let pageList = $derived.by(() => {
+		// Compact pager: shows first, last, current, neighbors, with ellipses
+		const pages = [];
+		const window = 1;
+		const add = (v) => pages.push(v);
+		for (let i = 1; i <= totalPages; i++) {
+			if (
+				i === 1 ||
+				i === totalPages ||
+				(i >= currentPage - window && i <= currentPage + window)
+			) {
+				add(i);
+			} else if (pages[pages.length - 1] !== '…') {
+				add('…');
+			}
+		}
+		return pages;
+	});
+
+	function selectTherapist(label) {
+		filterPT = label;
+		therapistMenuOpen = false;
+	}
+
+	function closeTherapistMenu() {
+		therapistMenuOpen = false;
+	}
 
 	function daysAgo(dateStr) {
 		const diff = Date.now() - new Date(dateStr).getTime();
@@ -224,22 +287,6 @@
 	</span>
 </div>
 
-<!-- PT filter pills row -->
-<div class="flex flex-wrap items-center gap-1 py-2 border-b border-Mist/60">
-	<span class="font-mono text-[9px] uppercase tracking-[0.2em] text-Dark/30 mr-1">PT:</span>
-	{#each ptFilters as f}
-		<button
-			onclick={() => (filterPT = f)}
-			class="rounded-lg px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors
-				{filterPT === f
-					? 'bg-Dark/80 text-white'
-					: 'text-Dark/40 hover:bg-Mist/50 hover:text-Dark'}"
-		>
-			{f}
-		</button>
-	{/each}
-</div>
-
 <!-- Table -->
 <div
 	class="overflow-hidden rounded-b-2xl rounded-t-none border border-t-0 border-Mist/60 bg-white shadow-sm"
@@ -269,9 +316,63 @@
 					<th class="w-[200px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Patient</th
 					>
-					<th class="w-[100px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
-						>Assigned PT</th
-					>
+					<th class="w-[130px] px-5 py-3">
+						<div class="relative inline-block">
+							<button
+								onclick={(e) => {
+									e.stopPropagation();
+									therapistMenuOpen = !therapistMenuOpen;
+								}}
+								class="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest transition-colors group
+									{filterPT !== 'All Therapists'
+										? 'text-Primary'
+										: 'text-Dark/40 hover:text-Dark/70'}"
+								aria-haspopup="listbox"
+								aria-expanded={therapistMenuOpen}
+							>
+								Therapist
+								<Filter
+									class="h-3 w-3 transition-opacity {filterPT !== 'All Therapists'
+										? 'opacity-100'
+										: 'opacity-0 group-hover:opacity-60'}"
+								/>
+								<ChevronDown
+									class="h-3 w-3 transition-transform {therapistMenuOpen ? 'rotate-180' : ''}"
+								/>
+							</button>
+
+							{#if therapistMenuOpen}
+								<div
+									class="fixed inset-0 z-40"
+									role="presentation"
+									onclick={closeTherapistMenu}
+								></div>
+								<div
+									role="listbox"
+									class="absolute left-0 top-7 z-50 w-44 rounded-xl border border-Mist/70 bg-white shadow-xl shadow-Dark/10 overflow-hidden"
+								>
+									<div class="p-1">
+										{#each ptFilters as f}
+											<button
+												role="option"
+												aria-selected={filterPT === f}
+												onclick={() => selectTherapist(f)}
+												class="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 font-mono text-[11px] transition-colors text-left
+													{filterPT === f
+														? 'bg-Primary/10 text-Primary'
+														: 'text-Dark/70 hover:bg-Mist/30 hover:text-Dark'}"
+											>
+												<span>{f}</span>
+												{#if filterPT === f}
+													<Check class="h-3 w-3 flex-shrink-0" />
+												{/if}
+											</button>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					</th>
 					<th class="w-[110px] px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-Dark/40"
 						>Days Until Appt</th
 					>
@@ -286,16 +387,7 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-Mist/40">
-				{#if processedLeads.length === 0}
-					<tr>
-						<td colspan="7" class="py-16 text-center font-mono text-xs text-Dark/30">
-							{searchQuery || viewFilter !== 'all' || filterPT !== 'All PTs'
-								? 'No matching records.'
-								: 'No confirmed patients yet.'}
-						</td>
-					</tr>
-				{/if}
-				{#each processedLeads as lead (lead.id)}
+				{#each pagedLeads as lead (lead.id)}
 					{@const days = daysUntilAppt(lead.datetime)}
 					{@const isVoice = isVoiceSource(lead)}
 					{@const ptSlug = lead.assigned_pt?.toLowerCase()}
@@ -440,7 +532,76 @@
 						</td>
 					</tr>
 				{/each}
+
+				<!-- Empty filler rows: keep table height constant so it always fits 10 rows -->
+				{#each Array(emptyRowCount) as _, i}
+					{@const isFirstFiller = i === 0 && pagedLeads.length === 0}
+					<tr class="h-[76px]" aria-hidden={isFirstFiller ? undefined : 'true'}>
+						{#if isFirstFiller}
+							<td
+								colspan="7"
+								class="text-center align-middle font-mono text-xs text-Dark/30"
+							>
+								{searchQuery || viewFilter !== 'all' || filterPT !== 'All Therapists'
+									? 'No matching records.'
+									: 'No confirmed patients yet.'}
+							</td>
+						{:else}
+							<td colspan="7"></td>
+						{/if}
+					</tr>
+				{/each}
 			</tbody>
 		</table>
+	</div>
+
+	<!-- Pagination footer -->
+	<div
+		class="flex flex-wrap items-center justify-between gap-3 border-t border-Mist/60 px-5 py-3"
+	>
+		<span class="font-mono text-[10px] uppercase tracking-widest text-Dark/40">
+			{#if totalFiltered === 0}
+				0 of 0
+			{:else}
+				{rangeStart}–{rangeEnd} of {totalFiltered}
+			{/if}
+		</span>
+
+		<div class="flex items-center gap-1">
+			<button
+				onclick={() => goToPage(currentPage - 1)}
+				disabled={currentPage <= 1}
+				class="rounded-lg p-1.5 text-Dark/40 hover:bg-Mist/50 hover:text-Dark transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-Dark/40 disabled:cursor-not-allowed"
+				aria-label="Previous page"
+			>
+				<ChevronLeft class="h-3.5 w-3.5" />
+			</button>
+
+			{#each pageList as p}
+				{#if p === '…'}
+					<span class="px-1.5 font-mono text-[10px] text-Dark/30">…</span>
+				{:else}
+					<button
+						onclick={() => goToPage(p)}
+						class="min-w-[28px] rounded-lg px-2 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors
+							{currentPage === p
+								? 'bg-Primary text-white'
+								: 'text-Dark/40 hover:bg-Mist/50 hover:text-Dark'}"
+						aria-current={currentPage === p ? 'page' : undefined}
+					>
+						{p}
+					</button>
+				{/if}
+			{/each}
+
+			<button
+				onclick={() => goToPage(currentPage + 1)}
+				disabled={currentPage >= totalPages}
+				class="rounded-lg p-1.5 text-Dark/40 hover:bg-Mist/50 hover:text-Dark transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-Dark/40 disabled:cursor-not-allowed"
+				aria-label="Next page"
+			>
+				<ChevronRight class="h-3.5 w-3.5" />
+			</button>
+		</div>
 	</div>
 </div>
