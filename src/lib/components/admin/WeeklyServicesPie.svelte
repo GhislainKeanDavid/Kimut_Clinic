@@ -65,11 +65,8 @@
 </script>
 
 <div class="rounded-2xl border border-Mist/60 bg-white p-5 shadow-sm">
-	<div class="mb-4 flex items-center justify-between">
+	<div class="mb-4 flex items-center">
 		<h3 class="font-serif text-base italic text-Dark">Services This Week</h3>
-		<span class="font-mono text-[9px] uppercase tracking-widest text-Dark/35">
-			Mon – Sun
-		</span>
 	</div>
 
 	<!-- Donut chart -->

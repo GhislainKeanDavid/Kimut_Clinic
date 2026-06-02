@@ -91,12 +91,7 @@
 <div class="rounded-2xl border border-Mist/60 bg-white p-5 shadow-sm">
 	<!-- Header -->
 	<div class="mb-5 flex flex-wrap items-start justify-between gap-3">
-		<div>
-			<h3 class="font-serif text-lg italic text-Dark">Schedule</h3>
-			<p class="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-Dark/40">
-				Take a look at your schedule for this week
-			</p>
-		</div>
+		<h3 class="font-serif text-lg italic text-Dark">Schedule</h3>
 
 		<div class="flex items-center gap-1 rounded-lg border border-Mist/60 px-2 py-1">
 			<button

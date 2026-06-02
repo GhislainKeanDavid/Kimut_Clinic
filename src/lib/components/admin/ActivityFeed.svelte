@@ -82,19 +82,8 @@
 </script>
 
 <div class="flex h-full flex-col rounded-2xl border border-Mist/60 bg-white p-5 shadow-sm">
-	<div class="mb-4 flex items-center justify-between">
+	<div class="mb-4 flex items-center">
 		<h3 class="font-serif text-base italic text-Dark">Activity</h3>
-		<span
-			class="flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-widest text-Dark/35"
-		>
-			<span class="relative flex h-1.5 w-1.5">
-				<span
-					class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"
-				></span>
-				<span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400"></span>
-			</span>
-			Live
-		</span>
 	</div>
 
 	<ul class="space-y-3.5">

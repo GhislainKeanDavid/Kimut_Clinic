@@ -149,7 +149,6 @@
 	});
 
 	let totalFiltered = $derived(processedLeads.length);
-	let totalAll = $derived(leads.length);
 	let totalPages = $derived(Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE)));
 
 	// Snap currentPage back into range when the filtered set shrinks (e.g. after filter changes)
@@ -268,9 +267,14 @@
 	];
 </script>
 
-<!-- Single white container wrapping toolbar + table + pagination -->
+<!-- Single white container wrapping title + toolbar + table + pagination -->
 <div class="overflow-hidden rounded-2xl border border-Mist/60 bg-white shadow-sm">
-	<!-- Toolbar: search + view filter pills + counter -->
+	<!-- Title row -->
+	<div class="border-b border-Mist/60 px-5 py-4">
+		<h2 class="font-serif text-lg italic text-Dark">Patient List</h2>
+	</div>
+
+	<!-- Toolbar: search + view filter pills -->
 	<div class="flex flex-wrap items-center gap-2 border-b border-Mist/60 px-5 py-3">
 		<!-- Search -->
 		<div class="relative w-48">
@@ -297,10 +301,6 @@
 				</button>
 			{/each}
 		</div>
-
-		<span class="ml-auto font-mono text-[10px] tracking-widest text-Dark/30">
-			{totalFiltered}/{totalAll}
-		</span>
 	</div>
 	<div class="overflow-x-auto">
 		<table class="w-full table-fixed text-left text-sm">
