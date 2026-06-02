@@ -12,6 +12,7 @@
 	import ActivityFeed from '$lib/components/admin/ActivityFeed.svelte';
 	import OnDutyTherapists from '$lib/components/admin/OnDutyTherapists.svelte';
 	import WeeklyServicesPie from '$lib/components/admin/WeeklyServicesPie.svelte';
+	import WeeklySchedule from '$lib/components/admin/WeeklySchedule.svelte';
 	import { toastStore } from '$lib/stores/toasts.svelte.js';
 
 	let { data } = $props();
@@ -149,11 +150,18 @@
 						/>
 					</div>
 
-					<aside class="space-y-5">
-						<ActivityFeed {leads} />
-						<OnDutyTherapists {leads} />
+					<aside class="flex flex-col gap-5">
 						<WeeklyServicesPie {leads} />
+						<OnDutyTherapists {leads} />
+						<div class="flex flex-1 min-h-[280px] flex-col">
+							<ActivityFeed {leads} />
+						</div>
 					</aside>
+				</div>
+
+				<!-- Weekly schedule (full-width, below the dashboard grid) -->
+				<div class="mt-6">
+					<WeeklySchedule {leads} />
 				</div>
 			</div>
 

@@ -32,7 +32,7 @@
 		});
 	}
 
-	const MAX_ITEMS = 6;
+	const MAX_ITEMS = 5;
 
 	const activityItems = $derived.by(() => {
 		const items = [];
@@ -81,7 +81,7 @@
 	let emptySlotCount = $derived(Math.max(0, MAX_ITEMS - activityItems.length));
 </script>
 
-<div class="rounded-2xl border border-Mist/60 bg-white p-5 shadow-sm">
+<div class="flex h-full flex-col rounded-2xl border border-Mist/60 bg-white p-5 shadow-sm">
 	<div class="mb-4 flex items-center justify-between">
 		<h3 class="font-serif text-base italic text-Dark">Activity</h3>
 		<span
@@ -135,8 +135,11 @@
 		{/each}
 	</ul>
 
+	<!-- Spacer pushes "View All" to the bottom when the card stretches in the sidebar -->
+	<div class="min-h-[16px] flex-1"></div>
+
 	<button
-		class="mt-4 w-full rounded-lg border border-Mist/60 py-2 font-mono text-[10px] uppercase tracking-wider text-Dark/50 hover:bg-Mist/30 hover:text-Dark transition-colors"
+		class="w-full rounded-lg border border-Mist/60 py-2 font-mono text-[10px] uppercase tracking-wider text-Dark/50 hover:bg-Mist/30 hover:text-Dark transition-colors"
 	>
 		View All
 	</button>

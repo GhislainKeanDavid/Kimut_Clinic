@@ -14,6 +14,7 @@
 		FileText,
 		Pencil
 	} from 'lucide-svelte';
+	import { colorForService } from '$lib/serviceColors.js';
 
 	let {
 		leads,
@@ -472,7 +473,19 @@
 						</td>
 
 						<!-- Service -->
-						<td class="px-5 py-4 font-mono text-xs text-Dark/60">{lead.service}</td>
+						<td class="px-5 py-4">
+							{#if lead.service}
+								{@const sc = colorForService(lead.service)}
+								<span
+									class="inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 font-mono text-[10px] font-medium {sc.bgClass} {sc.textClass} {sc.borderClass}"
+								>
+									<span class="h-1.5 w-1.5 rounded-full {sc.dotClass}"></span>
+									{lead.service}
+								</span>
+							{:else}
+								<span class="font-mono text-xs text-Dark/30">—</span>
+							{/if}
+						</td>
 
 						<!-- Attendance -->
 						<td class="px-5 py-4">
