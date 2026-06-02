@@ -1,6 +1,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
-	import { PUBLIC_UMAMI_SHARE_URL, PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+	import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import { createBrowserClient } from '@supabase/ssr';
 
 	import SideNav from '$lib/components/admin/SideNav.svelte';
@@ -16,7 +17,12 @@
 	import { toastStore } from '$lib/stores/toasts.svelte.js';
 
 	let { data } = $props();
-	let leads = $state(data.leads || []);
+	let leads = $state();
+	$effect.pre(() => {
+		if (leads === undefined) {
+			leads = data.leads || [];
+		}
+	});
 
 	let activeView = $state('patients');
 	// 'all' | 'this_week' | 'needs_attention' — driven by the metric cards and the table's filter pills.
@@ -178,7 +184,7 @@
 				</div>
 
 				<iframe
-					src={PUBLIC_UMAMI_SHARE_URL}
+					src={env.PUBLIC_UMAMI_SHARE_URL}
 					title="Umami Analytics"
 					class="w-full flex-1 rounded-2xl border border-Mist/60"
 					style="min-height: 500px;"

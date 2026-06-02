@@ -29,7 +29,7 @@
 		dev_scenario: 'success'
 	});
 
-	let stepsContainer;
+	let stepsContainer = $state();
 	let session_id = '';
 
 	const totalSteps = 7;
@@ -53,9 +53,9 @@
 	];
 
 	const therapists = [
-		{ id: 'reyes', label: 'Reyes', initials: 'R', color: 'bg-blue-100 text-blue-700' },
-		{ id: 'santos', label: 'Santos', initials: 'S', color: 'bg-green-100 text-green-700' },
-		{ id: 'dizon', label: 'Dizon', initials: 'D', color: 'bg-amber-100 text-amber-700' },
+		{ id: 'reyes', label: 'Dr. Reyes', initials: 'R', color: 'bg-blue-100 text-blue-700' },
+		{ id: 'santos', label: 'Dr. Santos', initials: 'S', color: 'bg-green-100 text-green-700' },
+		{ id: 'dizon', label: 'Dr. Dizon', initials: 'D', color: 'bg-amber-100 text-amber-700' },
 		{ id: 'any', label: 'No Preference', initials: '?', color: 'bg-Mist/60 text-Dark/40' }
 	];
 
@@ -258,7 +258,7 @@
 
 	function ptLabel(id) {
 		if (!id || id === 'any') return 'No preference — auto-assigned';
-		return id.charAt(0).toUpperCase() + id.slice(1);
+		return 'Dr. ' + id.charAt(0).toUpperCase() + id.slice(1);
 	}
 
 	let step3Valid = $derived(
@@ -300,7 +300,7 @@
 
 		{#if !isSuccess}
 			<div
-				class="relative w-full overflow-hidden rounded-[2rem] border border-Mist/40 bg-white p-8 shadow-[0_24px_80px_rgba(0,0,0,0.25)] sm:p-12"
+				class="relative w-full overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] border border-Mist/40 bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,0.25)] sm:p-12"
 			>
 				<!-- Progress Bar -->
 				<div class="absolute left-0 top-0 h-1.5 w-full bg-Mist/20">
@@ -326,20 +326,20 @@
 					<!-- STEP 1 -->
 					{#if currentStep === 1}
 						<div class="step">
-							<h3 class="mb-8 text-2xl font-medium text-Dark">What brings you in today?</h3>
-							<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+							<h3 class="mb-6 sm:mb-8 text-xl sm:text-2xl font-medium text-Dark">What brings you in today?</h3>
+							<div class="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
 								{#each concerns as concern}
 									<button
-										class="flex flex-col items-start gap-4 rounded-[1.25rem] border p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md {formData.concernCategory === concern.id ? 'border-Accent bg-Accent/5 ring-1 ring-Accent' : 'border-Mist/60 hover:border-Accent/50'}"
+										class="flex flex-col items-start gap-2.5 sm:gap-4 rounded-xl sm:rounded-[1.25rem] border p-4 sm:p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md {formData.concernCategory === concern.id ? 'border-Accent bg-Accent/5 ring-1 ring-Accent' : 'border-Mist/60 hover:border-Accent/50'}"
 										onclick={() => {
 											formData.concernCategory = concern.id;
 											nextStep();
 										}}
 									>
-										<Activity class="h-8 w-8 text-Accent" strokeWidth={1.5} />
+										<Activity class="h-6 w-6 sm:h-8 sm:w-8 text-Accent" strokeWidth={1.5} />
 										<div>
-											<span class="block font-sans text-lg font-medium text-Dark">{concern.id}</span>
-											<span class="mt-1 block text-sm text-Dark/70">{concern.desc}</span>
+											<span class="block font-sans text-[15px] sm:text-lg font-medium text-Dark leading-snug">{concern.id}</span>
+											<span class="mt-0.5 sm:mt-1 block text-xs sm:text-sm text-Dark/70 leading-snug">{concern.desc}</span>
 										</div>
 									</button>
 								{/each}
@@ -350,7 +350,7 @@
 					<!-- STEP 2 -->
 					{#if currentStep === 2}
 						<div class="step">
-							<h3 class="mb-8 text-2xl font-medium text-Dark">How long & how bad?</h3>
+							<h3 class="mb-6 sm:mb-8 text-xl sm:text-2xl font-medium text-Dark">How long & how bad?</h3>
 							<div class="mx-auto max-w-xl space-y-12">
 								<div>
 									<label for="duration" class="mb-4 block font-medium"
@@ -399,8 +399,8 @@
 					<!-- STEP 3 -->
 					{#if currentStep === 3}
 						<div class="step">
-							<h3 class="mb-8 text-2xl font-medium text-Dark">Tell us about you</h3>
-							<div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+							<h3 class="mb-6 sm:mb-8 text-xl sm:text-2xl font-medium text-Dark">Tell us about you</h3>
+							<div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
 								<div class="space-y-1">
 									<label class="text-sm text-Dark/70" for="fullname"
 										>Full Name <span class="text-Accent">*</span></label
@@ -487,24 +487,24 @@
 					<!-- STEP 4 -->
 					{#if currentStep === 4}
 						<div class="step">
-							<h3 class="mb-8 text-2xl font-medium text-Dark">Pick a service</h3>
-							<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+							<h3 class="mb-6 sm:mb-8 text-xl sm:text-2xl font-medium text-Dark">Pick a service</h3>
+							<div class="grid grid-cols-1 gap-2.5 sm:gap-4 sm:grid-cols-2">
 								{#each services as svc}
 									<button
-										class="flex items-center gap-4 rounded-[1.25rem] border p-5 text-left transition-all hover:border-Accent/50 {formData.service === svc.id ? 'border-Accent bg-Accent/5 ring-1 ring-Accent' : 'border-Mist/60'}"
+										class="flex items-center gap-3 sm:gap-4 rounded-xl sm:rounded-[1.25rem] border p-3.5 sm:p-5 text-left transition-all hover:border-Accent/50 {formData.service === svc.id ? 'border-Accent bg-Accent/5 ring-1 ring-Accent' : 'border-Mist/60'}"
 										onclick={() => {
 											formData.service = svc.id;
 											nextStep();
 										}}
 									>
 										<div
-											class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-Mist/30"
+											class="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-Mist/30"
 										>
-											<User class="h-5 w-5 text-Dark/80" />
+											<User class="h-4 w-4 sm:h-5 sm:w-5 text-Dark/80" />
 										</div>
-										<div>
-											<span class="block font-medium">{svc.id}</span>
-											<span class="block text-sm text-Dark/70">{svc.desc}</span>
+										<div class="min-w-0">
+											<span class="block text-[15px] sm:text-base font-medium leading-snug">{svc.id}</span>
+											<span class="block text-xs sm:text-sm text-Dark/70 leading-snug">{svc.desc}</span>
 										</div>
 									</button>
 								{/each}
@@ -518,25 +518,25 @@
 					<!-- STEP 5 — Choose therapist + Pick a slot (combined) -->
 					{#if currentStep === 5}
 						<div class="step">
-							<h3 class="mb-3 text-2xl font-medium text-Dark">Choose your therapist</h3>
-							<p class="mb-8 text-sm text-Dark/60">
+							<h3 class="mb-3 text-xl sm:text-2xl font-medium text-Dark">Choose your therapist</h3>
+							<p class="mb-6 sm:mb-8 text-sm text-Dark/60">
 								Select a specific therapist or let us match you to the first available.
 							</p>
-							<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+							<div class="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-4">
 								{#each therapists as t}
 									<button
-										class="flex flex-col items-center gap-4 rounded-[1.25rem] border p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md
+										class="flex flex-col items-center gap-2.5 sm:gap-4 rounded-xl sm:rounded-[1.25rem] border p-4 sm:p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md
 											{formData.preferred_pt === t.id
 												? 'border-Accent bg-Accent/5 ring-1 ring-Accent'
 												: 'border-Mist/60 hover:border-Accent/50'}"
 										onclick={() => selectPt(t.id)}
 									>
 										<div
-											class="flex h-16 w-16 items-center justify-center rounded-full text-xl font-semibold {t.color}"
+											class="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full text-lg sm:text-xl font-semibold {t.color}"
 										>
 											{t.initials}
 										</div>
-										<span class="font-medium text-Dark">{t.label}</span>
+										<span class="text-sm sm:text-base font-medium text-Dark">{t.label}</span>
 									</button>
 								{/each}
 							</div>
@@ -630,7 +630,7 @@
 					<!-- STEP 6 — Payment Method -->
 					{#if currentStep === 6}
 						<div class="step">
-							<h3 class="mb-3 text-2xl font-medium text-Dark">How would you like to pay?</h3>
+							<h3 class="mb-3 text-xl sm:text-2xl font-medium text-Dark">How would you like to pay?</h3>
 							<p class="mb-8 text-sm text-Dark/60">
 								The initial assessment fee is
 								<span class="font-mono font-semibold text-Dark"
@@ -641,11 +641,11 @@
 							<p class="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-Dark/40">
 								— E-Wallets
 							</p>
-							<div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+							<div class="mb-8 grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-4">
 								{#each paymentMethods.filter((m) => m.kind === 'wallet') as m}
 									<button
 										onclick={() => (formData.payment_method = m.id)}
-										class="flex flex-col items-center gap-3 rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md
+										class="flex flex-col items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border p-3 sm:p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md
 											{formData.payment_method === m.id
 											? 'border-Accent bg-Accent/5 ring-1 ring-Accent'
 											: 'border-Mist/60 hover:border-Accent/50'}"
@@ -664,7 +664,7 @@
 							<p class="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-Dark/40">
 								— Bank Transfer
 							</p>
-							<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+							<div class="mb-6 grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-3">
 								{#each paymentMethods.filter((m) => m.kind === 'bank') as m}
 									<button
 										onclick={() => (formData.payment_method = m.id)}
@@ -740,7 +740,7 @@
 					<!-- STEP 7 — Review & Submit -->
 					{#if currentStep === 7}
 						<div class="step">
-							<h3 class="mb-8 text-2xl font-medium text-Dark">Review & Submit</h3>
+							<h3 class="mb-6 sm:mb-8 text-xl sm:text-2xl font-medium text-Dark">Review & Submit</h3>
 
 							{#if submitError}
 								<div class="mb-6 flex items-start gap-3 rounded-xl bg-red-50 p-4 text-red-800">
@@ -749,9 +749,9 @@
 								</div>
 							{/if}
 
-							<div class="rounded-[1.25rem] border border-Mist/60 bg-Mist/10 p-6 mb-6">
-								<h4 class="mb-4 font-medium">Summary</h4>
-								<div class="grid grid-cols-2 gap-4 text-sm">
+							<div class="rounded-xl sm:rounded-[1.25rem] border border-Mist/60 bg-Mist/10 p-4 sm:p-6 mb-6">
+								<h4 class="mb-3 sm:mb-4 font-medium">Summary</h4>
+								<div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 text-sm">
 									<div><span class="text-Dark/60">Name:</span> {formData.full_name}</div>
 									<div><span class="text-Dark/60">Phone:</span> {formData.phone_number}</div>
 									<div><span class="text-Dark/60">Concern:</span> {formData.concernCategory}</div>

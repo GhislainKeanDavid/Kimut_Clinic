@@ -1,5 +1,5 @@
 <script>
-	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-svelte';
 	import { colorForService } from '$lib/serviceColors.js';
 
 	let { leads } = $props();
@@ -12,9 +12,9 @@
 
 	const PT_LIST = [
 		{ id: 'all', label: 'All Therapists' },
-		{ id: 'reyes', label: 'Reyes' },
-		{ id: 'santos', label: 'Santos' },
-		{ id: 'dizon', label: 'Dizon' }
+		{ id: 'reyes', label: 'Dr. Reyes' },
+		{ id: 'santos', label: 'Dr. Santos' },
+		{ id: 'dizon', label: 'Dr. Dizon' }
 	];
 
 	let selectedPt = $state('all');
@@ -119,22 +119,22 @@
 		</div>
 	</div>
 
-	<!-- Therapist switcher -->
-	<div class="mb-4 flex flex-wrap items-center gap-1">
-		<span class="mr-2 font-mono text-[9px] uppercase tracking-[0.2em] text-Dark/30">
-			Therapist
-		</span>
-		{#each PT_LIST as pt}
-			<button
-				onclick={() => (selectedPt = pt.id)}
-				class="rounded-lg px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors
-					{selectedPt === pt.id
-					? 'bg-Dark/80 text-white'
-					: 'text-Dark/40 hover:bg-Mist/50 hover:text-Dark'}"
+	<!-- Therapist dropdown -->
+	<div class="mb-4 flex items-center gap-2">
+		<span class="font-mono text-[9px] uppercase tracking-[0.2em] text-Dark/30">Therapist</span>
+		<div class="relative inline-block">
+			<select
+				bind:value={selectedPt}
+				class="appearance-none rounded-lg border border-Mist/60 bg-white pl-3 pr-8 py-1.5 font-mono text-[11px] text-Dark outline-none cursor-pointer hover:bg-Mist/30 focus:border-Primary/50 focus:ring-1 focus:ring-Primary/20 transition-colors"
 			>
-				{pt.label}
-			</button>
-		{/each}
+				{#each PT_LIST as pt}
+					<option value={pt.id}>{pt.label}</option>
+				{/each}
+			</select>
+			<ChevronDown
+				class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-Dark/40"
+			/>
+		</div>
 	</div>
 
 	<!-- Schedule grid -->
@@ -170,14 +170,20 @@
 							{isToday(day) ? 'bg-Primary/[0.02]' : ''}"
 					>
 						{#if appts.length > 0}
-							<div class="flex h-full flex-col gap-0.5">
+							<div class="flex h-full flex-col gap-1">
 								{#each appts as a}
 									{@const c = colorForService(a.service)}
 									<div
-										class="truncate rounded-md border px-1.5 py-1 text-[10px] font-medium leading-tight {c.bgClass} {c.textClass} {c.borderClass}"
-										title={`${a.full_name ?? 'Patient'} · ${a.service ?? 'Service'} · ${a.assigned_pt ?? 'Unassigned'}`}
+										class="relative overflow-hidden rounded-md text-[10px] font-medium leading-tight text-Dark/85 {c.bgClass}"
+										title={`${a.full_name ?? 'Patient'} · ${a.service ?? 'Service'} · ${a.assigned_pt ? 'Dr. ' + a.assigned_pt.charAt(0).toUpperCase() + a.assigned_pt.slice(1) : 'Unassigned'}`}
 									>
-										{a.service ?? 'Service'}
+										<span
+											class="absolute inset-y-0 left-0 w-[3px]"
+											style="background:{c.hex};"
+										></span>
+										<span class="block truncate py-1.5 pl-2.5 pr-1.5">
+											{a.service ?? 'Service'}
+										</span>
 									</div>
 								{/each}
 							</div>

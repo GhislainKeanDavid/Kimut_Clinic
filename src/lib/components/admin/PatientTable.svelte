@@ -57,11 +57,17 @@
 	}
 
 	const ptCfg = {
-		reyes: { label: 'Reyes', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
-		santos: { label: 'Santos', badge: 'bg-green-50 text-green-700 border-green-200' },
-		dizon: { label: 'Dizon', badge: 'bg-amber-50 text-amber-700 border-amber-200' }
+		reyes: { label: 'Dr. Reyes', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
+		santos: { label: 'Dr. Santos', badge: 'bg-green-50 text-green-700 border-green-200' },
+		dizon: { label: 'Dr. Dizon', badge: 'bg-amber-50 text-amber-700 border-amber-200' }
 	};
-	const ptFilters = ['All Therapists', 'Reyes', 'Santos', 'Dizon', 'Unassigned'];
+	const ptFilters = [
+		{ id: 'all', label: 'All Therapists' },
+		{ id: 'reyes', label: 'Dr. Reyes' },
+		{ id: 'santos', label: 'Dr. Santos' },
+		{ id: 'dizon', label: 'Dr. Dizon' },
+		{ id: 'unassigned', label: 'Unassigned' }
+	];
 
 	const PAGE_SIZE = 10;
 
@@ -69,9 +75,13 @@
 	let sortField = $state('date');
 	let sortDir = $state('desc');
 	let openActionRow = $state(null);
-	let filterPT = $state('All Therapists');
+	let filterPT = $state('all');
 	let therapistMenuOpen = $state(false);
 	let currentPage = $state(1);
+
+	let filterPTLabel = $derived(
+		ptFilters.find((f) => f.id === filterPT)?.label ?? 'All Therapists'
+	);
 
 	function toggleSort(field) {
 		if (sortField === field) {
@@ -109,10 +119,10 @@
 		const q = searchQuery.toLowerCase();
 		let result = leads.filter((l) => {
 			const matchesPT =
-				filterPT === 'All Therapists' ||
-				(filterPT === 'Unassigned'
+				filterPT === 'all' ||
+				(filterPT === 'unassigned'
 					? !l.assigned_pt
-					: l.assigned_pt?.toLowerCase() === filterPT.toLowerCase());
+					: l.assigned_pt?.toLowerCase() === filterPT);
 			const matchesSearch =
 				!q ||
 				l.full_name?.toLowerCase().includes(q) ||
@@ -187,8 +197,8 @@
 		return pages;
 	});
 
-	function selectTherapist(label) {
-		filterPT = label;
+	function selectTherapist(id) {
+		filterPT = id;
 		therapistMenuOpen = false;
 	}
 
@@ -325,7 +335,7 @@
 									therapistMenuOpen = !therapistMenuOpen;
 								}}
 								class="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest transition-colors group
-									{filterPT !== 'All Therapists'
+									{filterPT !== 'all'
 										? 'text-Primary'
 										: 'text-Dark/40 hover:text-Dark/70'}"
 								aria-haspopup="listbox"
@@ -333,7 +343,7 @@
 							>
 								Therapist
 								<Filter
-									class="h-3 w-3 transition-opacity {filterPT !== 'All Therapists'
+									class="h-3 w-3 transition-opacity {filterPT !== 'all'
 										? 'opacity-100'
 										: 'opacity-0 group-hover:opacity-60'}"
 								/>
@@ -356,15 +366,15 @@
 										{#each ptFilters as f}
 											<button
 												role="option"
-												aria-selected={filterPT === f}
-												onclick={() => selectTherapist(f)}
+												aria-selected={filterPT === f.id}
+												onclick={() => selectTherapist(f.id)}
 												class="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 font-mono text-[11px] transition-colors text-left
-													{filterPT === f
+													{filterPT === f.id
 														? 'bg-Primary/10 text-Primary'
 														: 'text-Dark/70 hover:bg-Mist/30 hover:text-Dark'}"
 											>
-												<span>{f}</span>
-												{#if filterPT === f}
+												<span>{f.label}</span>
+												{#if filterPT === f.id}
 													<Check class="h-3 w-3 flex-shrink-0" />
 												{/if}
 											</button>
@@ -451,10 +461,10 @@
 											e.target.value = '';
 										}}
 									>
-										<option value="" disabled>Assign PT…</option>
-										<option value="reyes">Reyes</option>
-										<option value="santos">Santos</option>
-										<option value="dizon">Dizon</option>
+										<option value="" disabled>Assign therapist…</option>
+										<option value="reyes">Dr. Reyes</option>
+										<option value="santos">Dr. Santos</option>
+										<option value="dizon">Dr. Dizon</option>
 									</select>
 									<ChevronDown
 										class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-amber-600 opacity-60"
@@ -555,7 +565,7 @@
 								colspan="7"
 								class="text-center align-middle font-mono text-xs text-Dark/30"
 							>
-								{searchQuery || viewFilter !== 'all' || filterPT !== 'All Therapists'
+								{searchQuery || viewFilter !== 'all' || filterPT !== 'all'
 									? 'No matching records.'
 									: 'No confirmed patients yet.'}
 							</td>

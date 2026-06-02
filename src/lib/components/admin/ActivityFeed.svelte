@@ -69,7 +69,7 @@
 					Icon: ClipboardCheck,
 					accent: 'bg-blue-50 text-blue-600',
 					title: 'Therapist Assigned',
-					body: `${l.assigned_pt.charAt(0).toUpperCase() + l.assigned_pt.slice(1)} assigned to ${l.full_name || 'patient'}`,
+					body: `Dr. ${l.assigned_pt.charAt(0).toUpperCase() + l.assigned_pt.slice(1)} assigned to ${l.full_name || 'patient'}`,
 					stamp
 				});
 			}
