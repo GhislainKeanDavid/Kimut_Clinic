@@ -11,6 +11,7 @@
 	import ToastNotifications from '$lib/components/admin/ToastNotifications.svelte';
 	import ActivityFeed from '$lib/components/admin/ActivityFeed.svelte';
 	import OnDutyTherapists from '$lib/components/admin/OnDutyTherapists.svelte';
+	import WeeklyServicesPie from '$lib/components/admin/WeeklyServicesPie.svelte';
 	import { toastStore } from '$lib/stores/toasts.svelte.js';
 
 	let { data } = $props();
@@ -151,6 +152,7 @@
 					<aside class="space-y-5">
 						<ActivityFeed {leads} />
 						<OnDutyTherapists {leads} />
+						<WeeklyServicesPie {leads} />
 					</aside>
 				</div>
 			</div>
