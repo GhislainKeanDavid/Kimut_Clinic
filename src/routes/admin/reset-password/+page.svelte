@@ -10,7 +10,12 @@
 	let showNew = $state(false);
 	let showConfirm = $state(false);
 	let password = $state('');
+	// Direct $state init (NOT $effect.pre) so the values are defined during SSR.
+	// $effect.pre never runs on the server; using it leaves both undefined and
+	// renders an empty page on first paint.
+	// svelte-ignore state_referenced_locally
 	let pageReady = $state(data.ready ?? false);
+	// svelte-ignore state_referenced_locally
 	let pageError = $state(data.error ?? null);
 
 	onMount(async () => {

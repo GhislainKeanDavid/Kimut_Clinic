@@ -17,12 +17,11 @@
 	import { toastStore } from '$lib/stores/toasts.svelte.js';
 
 	let { data } = $props();
-	let leads = $state();
-	$effect.pre(() => {
-		if (leads === undefined) {
-			leads = data.leads || [];
-		}
-	});
+	// One-time seed of the realtime list from server-loaded data. Must be a direct
+	// $state init (NOT $effect.pre) — $effect.pre never runs during SSR, which
+	// would leave child components dereferencing undefined and return 500.
+	// svelte-ignore state_referenced_locally
+	let leads = $state(data.leads || []);
 
 	let activeView = $state('patients');
 	// 'all' | 'this_week' | 'needs_attention' — driven by the metric cards and the table's filter pills.
