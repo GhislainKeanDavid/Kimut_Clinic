@@ -37,7 +37,10 @@
 </script>
 
 <nav
-	class="absolute left-1/2 top-5 z-50 flex w-[calc(100%-2rem)] max-w-[800px] lg:w-max lg:px-6 -translate-x-1/2 items-center justify-between gap-8 lg:gap-12 rounded-full px-5 py-3 bg-Background text-Primary shadow-md border border-Mist/60"
+	class="fixed left-1/2 top-5 z-50 flex w-[calc(100%-2rem)] max-w-[800px] lg:w-max lg:px-6 -translate-x-1/2 items-center justify-between gap-8 lg:gap-12 rounded-full px-5 py-3 transition-all duration-300 border
+	{scrolled 
+		? 'bg-Background/70 text-Primary border-Mist/60 shadow-[0_8px_32px_rgba(0,0,0,0.06)] backdrop-blur-2xl' 
+		: 'bg-transparent text-Background border-transparent'}"
 >
 	<!-- Logo -->
 	<a href="#home" class="font-sans text-xl font-semibold tracking-tight">Kimut Clinic</a>
@@ -63,7 +66,7 @@
 			Book Assessment
 		</MagneticButton>
 		<button
-			class="flex h-10 w-10 items-center justify-center rounded-full bg-Primary/10 md:hidden"
+			class="flex h-10 w-10 items-center justify-center rounded-full md:hidden transition-colors {scrolled ? 'bg-Primary/10 text-Primary hover:bg-Primary/20' : 'bg-white/10 text-Background hover:bg-white/20'}"
 			onclick={toggleMobileMenu}
 			aria-label="Toggle Menu"
 		>

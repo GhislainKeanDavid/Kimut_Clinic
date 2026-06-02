@@ -36,17 +36,17 @@
 
 	<!-- Testimonials Grid -->
 	<div class="mx-auto max-w-7xl px-6">
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+		<div class="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory -mx-6 px-6 md:mx-0 md:px-0 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible md:pb-0 scrollbar-hide">
 			{#each testimonials as testimonial}
-				<div class="flex flex-col justify-between rounded-[2rem] border border-Mist/60 bg-white p-8 md:p-10 transition-all duration-400 hover:-translate-y-2 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
-					<p class="mb-10 font-serif text-[clamp(1.25rem,2vw,1.75rem)] italic leading-relaxed text-Dark">
+				<div class="flex flex-col justify-between min-w-[80vw] snap-center md:min-w-0 rounded-2xl sm:rounded-[2rem] border border-Mist/60 bg-white p-6 sm:p-8 md:p-10 transition-all duration-400 hover:-translate-y-2 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
+					<p class="mb-8 sm:mb-10 font-serif text-lg sm:text-[clamp(1.25rem,2vw,1.75rem)] italic leading-relaxed text-Dark">
 						"{testimonial.quote}"
 					</p>
 					
-					<div class="border-t border-Mist/60 pt-6 mt-auto">
-						<div class="flex flex-col gap-4">
+					<div class="border-t border-Mist/60 pt-4 sm:pt-6 mt-auto">
+						<div class="flex flex-col gap-3 sm:gap-4">
 							<span class="font-sans font-medium text-Dark">{testimonial.name}</span>
-							<div class="flex flex-wrap items-center gap-3 font-mono text-[10px] sm:text-[11px] uppercase tracking-widest text-Dark/60">
+							<div class="flex flex-wrap items-center gap-2 sm:gap-3 font-mono text-[10px] sm:text-[11px] uppercase tracking-widest text-Dark/60">
 								<span class="rounded-full bg-Accent/10 px-3 py-1 text-Accent">{testimonial.tag}</span>
 								<span>{testimonial.stat}</span>
 							</div>

@@ -105,15 +105,15 @@
 		</p>
 
 		<!-- Pillars grid integrated into Philosophy -->
-		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 text-left">
+		<div class="grid grid-cols-2 gap-3 sm:gap-6 text-left">
 			{#each pillars as pillar}
-				<div class="group flex flex-col items-start gap-6 rounded-[2rem] border border-white/10 bg-white/5 p-8 md:p-10 transition-all duration-400 ease-out hover:-translate-y-2 hover:bg-white/10">
-					<div class="flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-white/10 transition-transform duration-400 group-hover:scale-110">
+				<div class="group flex flex-col items-start gap-3 sm:gap-6 rounded-xl sm:rounded-[2rem] border border-white/10 bg-white/5 p-5 sm:p-8 md:p-10 transition-all duration-400 ease-out hover:-translate-y-2 hover:bg-white/10">
+					<div class="flex h-10 w-10 sm:h-16 sm:w-16 items-center justify-center rounded-lg sm:rounded-[1.25rem] bg-white/10 transition-transform duration-400 group-hover:scale-110">
 						{@html pillar.svg}
 					</div>
 					<div>
-						<h3 class="mb-3 font-sans text-[22px] font-medium text-Background">{pillar.title}</h3>
-						<p class="text-Background/70 leading-relaxed">{pillar.desc}</p>
+						<h3 class="mb-1.5 sm:mb-3 font-sans text-[15px] sm:text-[22px] font-medium text-Background leading-snug">{pillar.title}</h3>
+						<p class="text-xs sm:text-base text-Background/70 leading-snug sm:leading-relaxed">{pillar.desc}</p>
 					</div>
 				</div>
 			{/each}

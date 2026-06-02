@@ -41,37 +41,37 @@
 			</h2>
 		</div>
 
-		<div class="grid grid-cols-1 gap-8 md:grid-cols-3">
-			{#each team as member}
-				<div class="group flex flex-col">
-					<div class="relative mb-6 aspect-[3/4] w-full overflow-hidden rounded-[2rem] bg-Mist/20">
-						<img
-							src={member.image}
-							alt={member.name}
-							class="h-full w-full object-cover saturate-[0.8] grayscale transition-all duration-600 ease-out group-hover:scale-105 group-hover:grayscale-0 group-hover:saturate-100"
-						/>
-					</div>
-					<div class="px-2">
-						<span class="mb-3 block font-mono text-xs text-Accent">{member.initials}</span>
-						<h3 class="mb-1 font-sans text-2xl font-medium text-Dark">{member.name}</h3>
-						<p class="mb-6 font-mono text-[11px] uppercase tracking-widest text-Dark/60">
-							{member.title}
-						</p>
-						
-						<div class="mb-6 border-y border-Mist/60 py-3 font-mono text-sm text-Dark/70">
-							<div class="flex justify-between">
-								<span>{member.prc}</span>
-								<span>{member.exp}</span>
-							</div>
-						</div>
-						
-						<p class="text-Dark/80 leading-relaxed">
-							{member.bio}
-						</p>
-					</div>
+		<div class="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory -mx-6 px-6 md:mx-0 md:px-0 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible md:pb-0 scrollbar-hide">
+		{#each team as member}
+			<div class="group flex flex-col min-w-[72vw] snap-center md:min-w-0">
+				<div class="relative mb-4 sm:mb-6 aspect-[3/4] w-full overflow-hidden rounded-2xl sm:rounded-[2rem] bg-Mist/20">
+					<img
+						src={member.image}
+						alt={member.name}
+						class="h-full w-full object-cover saturate-[0.8] grayscale transition-all duration-600 ease-out group-hover:scale-105 group-hover:grayscale-0 group-hover:saturate-100"
+					/>
 				</div>
-			{/each}
-		</div>
+				<div class="px-1 sm:px-2">
+					<span class="mb-2 sm:mb-3 block font-mono text-xs text-Accent">{member.initials}</span>
+					<h3 class="mb-1 font-sans text-xl sm:text-2xl font-medium text-Dark leading-snug">{member.name}</h3>
+					<p class="mb-4 sm:mb-6 font-mono text-[10px] sm:text-[11px] uppercase tracking-widest text-Dark/60">
+						{member.title}
+					</p>
+					
+					<div class="mb-4 sm:mb-6 border-y border-Mist/60 py-2.5 sm:py-3 font-mono text-xs sm:text-sm text-Dark/70">
+						<div class="flex justify-between">
+							<span>{member.prc}</span>
+							<span>{member.exp}</span>
+						</div>
+					</div>
+					
+					<p class="text-sm sm:text-base text-Dark/80 leading-relaxed">
+						{member.bio}
+					</p>
+				</div>
+			</div>
+		{/each}
+	</div>
 
 		<div class="mt-24 pt-16 border-t border-Mist/60">
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">

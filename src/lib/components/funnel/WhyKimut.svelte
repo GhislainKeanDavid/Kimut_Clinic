@@ -31,18 +31,18 @@
 			</h2>
 		</div>
 
-		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-			{#each pillars as pillar}
-				<div class="group flex flex-col items-start gap-6 rounded-[2rem] border border-Mist/60 bg-white p-8 md:p-10 transition-all duration-400 ease-out hover:-translate-y-2 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
-					<div class="flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-Primary/5 transition-transform duration-400 group-hover:scale-110">
-						{@html pillar.svg}
-					</div>
-					<div>
-						<h3 class="mb-3 font-sans text-[22px] font-medium text-Dark">{pillar.title}</h3>
-						<p class="text-Dark/70 leading-relaxed">{pillar.desc}</p>
-					</div>
+		<div class="grid grid-cols-2 gap-3 sm:gap-6">
+		{#each pillars as pillar}
+			<div class="group flex flex-col items-start gap-3 sm:gap-6 rounded-xl sm:rounded-[2rem] border border-Mist/60 bg-white p-5 sm:p-8 md:p-10 transition-all duration-400 ease-out hover:-translate-y-2 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
+				<div class="flex h-10 w-10 sm:h-16 sm:w-16 items-center justify-center rounded-lg sm:rounded-[1.25rem] bg-Primary/5 transition-transform duration-400 group-hover:scale-110">
+					{@html pillar.svg}
 				</div>
-			{/each}
-		</div>
+				<div>
+					<h3 class="mb-1.5 sm:mb-3 font-sans text-[15px] sm:text-[22px] font-medium text-Dark leading-snug">{pillar.title}</h3>
+					<p class="text-xs sm:text-base text-Dark/70 leading-snug sm:leading-relaxed">{pillar.desc}</p>
+				</div>
+			</div>
+		{/each}
+	</div>
 	</div>
 </section>
