@@ -1,18 +1,25 @@
 <script>
-	import { Activity, ArrowLeft, Users, BarChart2, User, CalendarDays } from 'lucide-svelte';
+	import { page } from '$app/state';
+	import { Activity, ArrowLeft, Users, BarChart2, User, LayoutDashboard, Stethoscope } from 'lucide-svelte';
 
-	let { activeView = $bindable('patients'), onProfileClick } = $props();
+	let { onProfileClick } = $props();
 
 	const groups = [
 		{
 			label: 'Patient Management',
 			items: [
-				{ id: 'patients', label: 'Dashboard', Icon: Users },
-				{ id: 'schedules', label: 'PT Schedules', Icon: CalendarDays },
-				{ id: 'analytics', label: 'Funnel Analytics', Icon: BarChart2 }
+				{ href: '/admin', label: 'Dashboard', Icon: LayoutDashboard, match: 'exact' },
+				{ href: '/admin/patients', label: 'Patients', Icon: Users, match: 'prefix' },
+				{ href: '/admin/therapists', label: 'Therapists', Icon: Stethoscope, match: 'prefix' },
+				{ href: '/admin/analytics', label: 'Funnel Analytics', Icon: BarChart2, match: 'prefix' }
 			]
 		}
 	];
+
+	function isActive(item, pathname) {
+		if (item.match === 'exact') return pathname === item.href;
+		return pathname === item.href || pathname.startsWith(item.href + '/');
+	}
 </script>
 
 <nav class="w-56 flex-shrink-0 bg-Primary flex flex-col h-screen sticky top-0 overflow-hidden">
@@ -42,16 +49,18 @@
 				</p>
 				<div class="space-y-0.5">
 					{#each group.items as item}
-						<button
-							onclick={() => (activeView = item.id)}
+						{@const active = isActive(item, page.url.pathname)}
+						<a
+							href={item.href}
 							class="w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 font-mono text-[11px] text-left transition-all duration-150
-								{activeView === item.id
+								{active
 									? 'bg-white/[0.14] text-white font-medium shadow-sm'
 									: 'text-white/42 hover:bg-white/[0.07] hover:text-white/72'}"
+							aria-current={active ? 'page' : undefined}
 						>
 							<item.Icon class="h-3.5 w-3.5 flex-shrink-0" />
 							{item.label}
-						</button>
+						</a>
 					{/each}
 				</div>
 			</div>

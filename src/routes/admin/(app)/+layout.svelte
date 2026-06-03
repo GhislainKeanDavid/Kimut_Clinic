@@ -1,31 +1,22 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, setContext } from 'svelte';
 	import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
-	import { env } from '$env/dynamic/public';
 	import { createBrowserClient } from '@supabase/ssr';
 
 	import SideNav from '$lib/components/admin/SideNav.svelte';
 	import ProfileMenu from '$lib/components/admin/ProfileMenu.svelte';
-	import MetricCards from '$lib/components/admin/MetricCards.svelte';
-	import PatientTable from '$lib/components/admin/PatientTable.svelte';
-	import PTSchedule from '$lib/components/admin/PTSchedule.svelte';
 	import ToastNotifications from '$lib/components/admin/ToastNotifications.svelte';
-	import ActivityFeed from '$lib/components/admin/ActivityFeed.svelte';
-	import OnDutyTherapists from '$lib/components/admin/OnDutyTherapists.svelte';
-	import WeeklyServicesPie from '$lib/components/admin/WeeklyServicesPie.svelte';
-	import WeeklySchedule from '$lib/components/admin/WeeklySchedule.svelte';
 	import { toastStore } from '$lib/stores/toasts.svelte.js';
 
-	let { data } = $props();
-	// One-time seed of the realtime list from server-loaded data. Must be a direct
-	// $state init (NOT $effect.pre) — $effect.pre never runs during SSR, which
-	// would leave child components dereferencing undefined and return 500.
+	let { data, children } = $props();
+
+	// Single source of truth for `leads` across all authenticated admin pages.
+	// One-time seed from server-loaded data. Direct $state init (not $effect.pre)
+	// because $effect.pre never runs during SSR and we need this populated for
+	// the initial render.
 	// svelte-ignore state_referenced_locally
 	let leads = $state(data.leads || []);
 
-	let activeView = $state('patients');
-	// 'all' | 'this_week' | 'needs_attention' — driven by the metric cards and the table's filter pills.
-	let viewFilter = $state('all');
 	let profileMenuOpen = $state(false);
 
 	let realtimeChannel;
@@ -33,10 +24,10 @@
 	onMount(() => {
 		const supabase = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
 
-		// The dashboard only shows status='confirmed'. Two ways a row can enter that set:
+		// The dashboard only shows status='confirmed'. Two ways a row enters that set:
 		//   1. INSERT directly as confirmed (rare — admin/manual paths)
-		//   2. UPDATE from pending_payment → confirmed (the normal payment-cleared path)
-		// We need to react to both, and also reflect attendance edits without firing a toast.
+		//   2. UPDATE from pending_payment → confirmed (normal payment-cleared path)
+		// React to both, and reflect attendance edits without firing a toast.
 		realtimeChannel = supabase
 			.channel('confirmed-bookings')
 			.on(
@@ -54,7 +45,6 @@
 					if (existingIdx === -1) {
 						leads.unshift(lead);
 
-						const src = lead.source?.toLowerCase() ?? 'web';
 						const appt = lead.datetime
 							? new Date(lead.datetime).toLocaleString('en-PH', {
 									month: 'short',
@@ -71,7 +61,7 @@
 							source: lead.source ?? 'web'
 						});
 					} else {
-						// In-place update — no toast, just sync the row (attendance edits, follow-up
+						// In-place update — no toast, just sync (attendance edits, follow-up
 						// counter bumps from the No-Show workflow, etc.).
 						leads[existingIdx] = { ...leads[existingIdx], ...lead };
 					}
@@ -126,70 +116,25 @@
 	function toggleProfile() {
 		profileMenuOpen = !profileMenuOpen;
 	}
+
+	// Share with child pages. Getter exposes the reactive `leads` $state without
+	// breaking the proxy.
+	setContext('admin', {
+		get leads() {
+			return leads;
+		},
+		handleAttendanceChange,
+		handleAssignPt
+	});
 </script>
 
 <ToastNotifications />
 
 <div class="flex h-screen overflow-hidden bg-Background">
-	<!-- Side Navigation -->
-	<SideNav bind:activeView onProfileClick={toggleProfile} />
-
-	<!-- Profile Menu (fixed, floats above sidebar) -->
+	<SideNav onProfileClick={toggleProfile} />
 	<ProfileMenu bind:open={profileMenuOpen} />
 
-	<!-- Main content area -->
 	<main class="flex-1 overflow-y-auto flex flex-col">
-		{#if activeView === 'patients'}
-			<div class="mx-auto w-full max-w-[1500px] px-8 py-8">
-				<div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-					<div class="min-w-0">
-						<!-- Metric Cards -->
-						<MetricCards {leads} bind:viewFilter />
-
-						<!-- Patient Table -->
-						<PatientTable
-							{leads}
-							bind:viewFilter
-							onAssignPt={handleAssignPt}
-							onAttendanceChange={handleAttendanceChange}
-						/>
-					</div>
-
-					<aside class="flex flex-col gap-5">
-						<WeeklyServicesPie {leads} />
-						<OnDutyTherapists {leads} />
-						<div class="flex flex-1 min-h-[280px] flex-col">
-							<ActivityFeed {leads} />
-						</div>
-					</aside>
-				</div>
-
-				<!-- Weekly schedule (full-width, below the dashboard grid) -->
-				<div class="mt-6">
-					<WeeklySchedule {leads} />
-				</div>
-			</div>
-
-		{:else if activeView === 'schedules'}
-			<PTSchedule {leads} />
-
-		{:else if activeView === 'analytics'}
-			<div class="flex flex-1 flex-col px-8 py-8">
-				<div class="mb-6">
-					<h1 class="font-serif text-2xl italic text-Dark mb-1">Funnel Analytics</h1>
-					<p class="font-mono text-[11px] text-Dark/40 uppercase tracking-widest">
-						Patient Management
-					</p>
-				</div>
-
-				<iframe
-					src={env.PUBLIC_UMAMI_SHARE_URL}
-					title="Umami Analytics"
-					class="w-full flex-1 rounded-2xl border border-Mist/60"
-					style="min-height: 500px;"
-					sandbox="allow-scripts allow-same-origin"
-				></iframe>
-			</div>
-		{/if}
+		{@render children()}
 	</main>
 </div>

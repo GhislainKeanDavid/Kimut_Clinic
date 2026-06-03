@@ -1,7 +1,6 @@
 export const load = async ({ locals }) => {
 	const { supabase } = locals;
-	
-	// Default empty fallback data
+
 	let leads = [];
 	let funnelEvents = [];
 
@@ -20,7 +19,6 @@ export const load = async ({ locals }) => {
 				leads = leadsData;
 			}
 
-			// Fetch Funnel Events (last 30 days, or just recent ones)
 			const { data: eventsData, error: eventsError } = await supabase
 				.from('funnel_events')
 				.select('*')
@@ -35,8 +33,5 @@ export const load = async ({ locals }) => {
 		}
 	}
 
-	return {
-		leads,
-		funnelEvents
-	};
+	return { leads, funnelEvents };
 };
