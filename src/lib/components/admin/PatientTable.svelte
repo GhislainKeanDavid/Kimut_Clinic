@@ -1,4 +1,5 @@
 <script>
+	import { getContext } from 'svelte';
 	import {
 		Search,
 		ChevronDown,
@@ -15,6 +16,9 @@
 		Pencil
 	} from 'lucide-svelte';
 	import { colorForService } from '$lib/serviceColors.js';
+	import { colorForTherapist } from '$lib/therapistColors.js';
+
+	const admin = getContext('admin');
 
 	let {
 		leads,
@@ -56,18 +60,25 @@
 		return new Date(datetime).getTime() < Date.now();
 	}
 
-	const ptCfg = {
-		reyes: { label: 'Dr. Reyes', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
-		santos: { label: 'Dr. Santos', badge: 'bg-green-50 text-green-700 border-green-200' },
-		dizon: { label: 'Dr. Dizon', badge: 'bg-amber-50 text-amber-700 border-amber-200' }
-	};
-	const ptFilters = [
+	let therapists = $derived(admin.therapists ?? []);
+
+	let ptCfg = $derived.by(() => {
+		const map = {};
+		for (const t of therapists) {
+			const c = colorForTherapist(t);
+			map[t.slug] = {
+				label: t.full_name,
+				badge: `${c.bgClass} ${c.textClass} ${c.borderClass}`
+			};
+		}
+		return map;
+	});
+
+	let ptFilters = $derived.by(() => [
 		{ id: 'all', label: 'All Therapists' },
-		{ id: 'reyes', label: 'Dr. Reyes' },
-		{ id: 'santos', label: 'Dr. Santos' },
-		{ id: 'dizon', label: 'Dr. Dizon' },
+		...therapists.map((t) => ({ id: t.slug, label: t.full_name })),
 		{ id: 'unassigned', label: 'Unassigned' }
-	];
+	]);
 
 	const PAGE_SIZE = 10;
 
@@ -462,9 +473,9 @@
 										}}
 									>
 										<option value="" disabled>Assign therapist…</option>
-										<option value="reyes">Dr. Reyes</option>
-										<option value="santos">Dr. Santos</option>
-										<option value="dizon">Dr. Dizon</option>
+										{#each therapists as t (t.id)}
+											<option value={t.slug}>{t.full_name}</option>
+										{/each}
 									</select>
 									<ChevronDown
 										class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-amber-600 opacity-60"

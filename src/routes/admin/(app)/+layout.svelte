@@ -118,10 +118,14 @@
 	}
 
 	// Share with child pages. Getter exposes the reactive `leads` $state without
-	// breaking the proxy.
+	// breaking the proxy. Therapists rarely change so we pass them through as-is
+	// from server-loaded data.
 	setContext('admin', {
 		get leads() {
 			return leads;
+		},
+		get therapists() {
+			return data.therapists ?? [];
 		},
 		handleAttendanceChange,
 		handleAssignPt

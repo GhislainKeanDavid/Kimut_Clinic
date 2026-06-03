@@ -3,6 +3,7 @@ export const load = async ({ locals }) => {
 
 	let leads = [];
 	let funnelEvents = [];
+	let therapists = [];
 
 	if (supabase) {
 		try {
@@ -28,10 +29,20 @@ export const load = async ({ locals }) => {
 			if (!eventsError && eventsData) {
 				funnelEvents = eventsData;
 			}
+
+			const { data: therapistsData, error: therapistsError } = await supabase
+				.from('therapists')
+				.select('*')
+				.eq('active', true)
+				.order('full_name', { ascending: true });
+
+			if (!therapistsError && therapistsData) {
+				therapists = therapistsData;
+			}
 		} catch (err) {
 			console.error('Error fetching admin data:', err);
 		}
 	}
 
-	return { leads, funnelEvents };
+	return { leads, funnelEvents, therapists };
 };
