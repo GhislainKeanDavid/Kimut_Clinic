@@ -29,6 +29,13 @@
 	let inputEl;
 	const INPUT_MAX_HEIGHT = 120; // ~5 lines
 
+	function delayForMessage(content) {
+		const base = 600;
+		const perChar = 18;
+		const max = 1800;
+		return Math.min(base + (content?.length || 0) * perChar, max);
+	}
+
 	function autoResize() {
 		if (!inputEl) return;
 		inputEl.style.height = 'auto';
@@ -144,7 +151,14 @@
 					content: '(Kim is thinking — please try again in a moment.)'
 				});
 			}
-			messages = [...messages, ...newAgentMessages];
+			// Pace replies one at a time so Kim doesn't dump multi-part answers in one beat.
+			// isSending stays true until the loop finishes, keeping the typing dots visible.
+			for (const msg of newAgentMessages) {
+				await new Promise((r) => setTimeout(r, delayForMessage(msg.content)));
+				messages = [...messages, msg];
+				await tick();
+				scrollToBottom();
+			}
 		} catch (e) {
 			console.error('Chat send failed:', e);
 			chatError =
