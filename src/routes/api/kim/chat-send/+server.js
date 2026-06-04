@@ -25,7 +25,17 @@ export async function POST({ request }) {
 		if (!res.ok) {
 			const text = await res.text();
 			console.error('Retell chat-completion failed:', res.status, text);
-			return json({ success: false, reason: 'retell_error' }, { status: 502 });
+			return json(
+				{
+					success: false,
+					reason: 'retell_error',
+					debug: {
+						upstream_status: res.status,
+						upstream_body: text.slice(0, 500)
+					}
+				},
+				{ status: 502 }
+			);
 		}
 
 		const data = await res.json();

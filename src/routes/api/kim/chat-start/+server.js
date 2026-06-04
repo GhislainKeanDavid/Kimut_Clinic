@@ -8,7 +8,17 @@ export async function POST() {
 		publicEnv.PUBLIC_RETELL_CHAT_AGENT_ID || publicEnv.PUBLIC_RETELL_AGENT_ID;
 
 	if (!apiKey || !agentId) {
-		return json({ success: false, reason: 'not_configured' }, { status: 503 });
+		return json(
+			{
+				success: false,
+				reason: 'not_configured',
+				debug: {
+					has_api_key: Boolean(apiKey),
+					has_agent_id: Boolean(agentId)
+				}
+			},
+			{ status: 503 }
+		);
 	}
 
 	try {
@@ -24,13 +34,27 @@ export async function POST() {
 		if (!res.ok) {
 			const text = await res.text();
 			console.error('Retell create-chat failed:', res.status, text);
-			return json({ success: false, reason: 'retell_error' }, { status: 502 });
+			return json(
+				{
+					success: false,
+					reason: 'retell_error',
+					debug: {
+						upstream_status: res.status,
+						upstream_body: text.slice(0, 500),
+						agent_id_prefix: agentId.slice(0, 12)
+					}
+				},
+				{ status: 502 }
+			);
 		}
 
 		const data = await res.json();
 		return json({ success: true, chat_id: data.chat_id });
 	} catch (e) {
 		console.error('chat-start error:', e);
-		return json({ success: false, reason: 'server_error' }, { status: 500 });
+		return json(
+			{ success: false, reason: 'server_error', debug: { message: e?.message } },
+			{ status: 500 }
+		);
 	}
 }
