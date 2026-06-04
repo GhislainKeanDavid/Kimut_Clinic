@@ -5,10 +5,20 @@
 	import { env as publicEnv } from '$env/dynamic/public';
 
 	const KIM_PHONE_NUMBER = publicEnv.PUBLIC_KIM_PHONE_NUMBER || '';
-	const KIM_PHONE_DISPLAY = KIM_PHONE_NUMBER.replace(/^\+?63/, '0').replace(
-		/(\d{4})(\d{3})(\d{4})/,
-		'$1 $2 $3'
-	);
+
+	function formatPhone(raw) {
+		if (!raw) return '';
+		const digits = raw.replace(/\D/g, '');
+		if (digits.startsWith('63') && digits.length === 12) {
+			return `+63 ${digits.slice(2, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`;
+		}
+		if (digits.startsWith('1') && digits.length === 11) {
+			return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+		}
+		return raw.startsWith('+') ? raw : `+${digits}`;
+	}
+
+	const KIM_PHONE_DISPLAY = formatPhone(KIM_PHONE_NUMBER);
 	const KIM_PHONE_HREF = KIM_PHONE_NUMBER ? `tel:${KIM_PHONE_NUMBER}` : '';
 
 	let isExpanded = $state(false);
@@ -16,6 +26,23 @@
 	let collapsedRef;
 	let expandedRef;
 	let messagesRef;
+	let inputEl;
+	const INPUT_MAX_HEIGHT = 120; // ~5 lines
+
+	function autoResize() {
+		if (!inputEl) return;
+		inputEl.style.height = 'auto';
+		inputEl.style.height = Math.min(inputEl.scrollHeight, INPUT_MAX_HEIGHT) + 'px';
+	}
+
+	function focusInput() {
+		if (!inputEl) return;
+		inputEl.focus();
+		const end = inputEl.value.length;
+		try {
+			inputEl.setSelectionRange(end, end);
+		} catch {}
+	}
 
 	// Chat state
 	let chatId = $state(null);
@@ -52,7 +79,10 @@
 				{ opacity: 0, y: 20, display: 'flex' },
 				{ opacity: 1, y: 0, duration: 0.4, ease: 'power3.out', delay: 0.1 }
 			);
-			tick().then(scrollToBottom);
+			tick().then(() => {
+				scrollToBottom();
+				if (view === 'chat') focusInput();
+			});
 		} else {
 			gsap.to(expandedRef, { opacity: 0, y: 20, duration: 0.2, display: 'none' });
 			gsap.fromTo(
@@ -125,6 +155,8 @@
 			isSending = false;
 			await tick();
 			scrollToBottom();
+			autoResize();
+			focusInput();
 		}
 	}
 
@@ -200,7 +232,10 @@
 		view = 'chat';
 		callStatus = 'idle';
 		callError = '';
-		tick().then(scrollToBottom);
+		tick().then(() => {
+			scrollToBottom();
+			focusInput();
+		});
 	}
 
 	function toggleMute() {
@@ -262,13 +297,14 @@
 				</div>
 				<div class="flex flex-col">
 					<span class="font-sans text-sm font-medium text-Dark">Kim</span>
-					<span class="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-Dark/50">
-						<span class="relative flex h-1.5 w-1.5">
-							<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75"></span>
-							<span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-500"></span>
-						</span>
-						Online
-					</span>
+					{#if KIM_PHONE_DISPLAY}
+						<a
+							href={KIM_PHONE_HREF}
+							class="font-mono text-[10px] tracking-wide text-Dark/55 transition-colors hover:text-Accent"
+						>
+							{KIM_PHONE_DISPLAY}
+						</a>
+					{/if}
 				</div>
 			</div>
 			<div class="flex items-center gap-1">
@@ -339,26 +375,19 @@
 				{/if}
 			</div>
 
-			<!-- Direct call hint -->
-			{#if KIM_PHONE_DISPLAY}
-				<a
-					href={KIM_PHONE_HREF}
-					class="block border-t border-Mist/40 px-4 py-2 text-center font-mono text-[10px] uppercase tracking-widest text-Dark/50 transition-colors hover:text-Accent"
-				>
-					Or call directly · {KIM_PHONE_DISPLAY}
-				</a>
-			{/if}
-
 			<!-- Input -->
-			<div class="flex items-center gap-2 border-t border-Mist/40 bg-Background p-3">
-				<input
-					type="text"
+			<div class="flex items-end gap-2 border-t border-Mist/40 bg-Background p-3">
+				<textarea
+					bind:this={inputEl}
 					bind:value={inputText}
+					oninput={autoResize}
 					onkeydown={handleKeydown}
+					rows="1"
 					placeholder="Type your message…"
 					disabled={isSending}
-					class="flex-1 rounded-full border border-Mist/60 bg-Mist/10 px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-Dark/40 focus:border-Accent focus:bg-Background disabled:opacity-50"
-				/>
+					style="max-height: {INPUT_MAX_HEIGHT}px;"
+					class="flex-1 resize-none overflow-y-auto rounded-2xl border border-Mist/60 bg-Mist/10 px-4 py-2.5 text-sm leading-relaxed outline-none transition-colors placeholder:text-Dark/40 focus:border-Accent focus:bg-Background disabled:opacity-50"
+				></textarea>
 				<button
 					onclick={sendMessage}
 					disabled={isSending || !inputText.trim()}
