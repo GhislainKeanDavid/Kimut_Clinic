@@ -2,10 +2,9 @@
 	let currentSlide = $state(0);
 	
 	const images = [
-		'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80&auto=format&fit=crop', // PT stretching
-		'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80&auto=format&fit=crop', // Clean room
-		'https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&q=80&auto=format&fit=crop', // Medical equipment
-		'https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?w=800&q=80&auto=format&fit=crop'  // Massage/PT
+		'/facilities/facility-1.png',
+		'/facilities/facility-2.png',
+		'/facilities/facility-3.png'
 	];
 
 	function nextSlide() {
