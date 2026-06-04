@@ -2,9 +2,9 @@
 	let currentSlide = $state(0);
 	
 	const images = [
-		'/facilities/facility-1.png',
-		'/facilities/facility-2.png',
-		'/facilities/facility-3.png'
+		'/facilities/facility-1.webp',
+		'/facilities/facility-2.webp',
+		'/facilities/facility-3.webp'
 	];
 
 	function nextSlide() {
