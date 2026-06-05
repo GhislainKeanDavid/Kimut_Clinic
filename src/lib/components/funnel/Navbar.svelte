@@ -78,6 +78,7 @@
 <!-- Mobile Menu Overlay -->
 <div
 	bind:this={mobileMenuRef}
+	style="clip-path: circle(0% at calc(100% - 2rem) 2rem);"
 	class="fixed inset-0 z-[60] flex flex-col justify-center bg-Background px-8 text-Primary"
 >
 	<button
